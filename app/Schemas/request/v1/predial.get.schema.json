@@ -1,0 +1,28 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "predial.v1.request.get.schema",
+	"description": "Predial Schema of Request. Method GET.",
+	"type": "object",
+	"properties": {
+		"expedient" : {
+			"description": "Cadastral Record (Expediente Catastral)",
+			"anyOf": [
+				{ "type": "string" },
+				{ "type": "integer" }
+			],
+			"maxLength" : 10,
+			"minLength" : 7,
+			"pattern" : "^([0-9]{2,2})-?([0-9]{3,3})-?([0-9]{3,3})$"
+		},
+		"district" : {
+			"description": "District Id",
+			"anyOf": [
+				{ "type": "string" },
+				{ "type": "integer" }
+			],
+			"maxLength" : 2,
+			"minLength" : 2
+		}
+	},
+	"required" : ["expedient", "district"]
+}

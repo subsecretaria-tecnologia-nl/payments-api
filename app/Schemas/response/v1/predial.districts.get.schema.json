@@ -1,0 +1,39 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "predial.v1.request.get.schema",
+	"description": "Predial Schema of Request. Method GET.",
+	"type": "object",
+	"properties": {
+		"districts" : {
+			"type": "object",
+			"properties": {
+				"items" : {
+					"type" : "array",
+					"items" : {
+						"$ref" : "#/definitions/districts"
+					}
+				},
+				"quantity" : {
+					"type" : "number"
+				}
+			},
+			"required" : ["items", "quantity"]
+		}
+	},
+	"required" : ["districts"],
+	"definitions" : {
+		"districts" : {
+			"type" : "object",
+			"properties" : {
+				"id" : {
+					"description": "District ID",
+					"type": "number"
+				},
+				"name" : {
+					"description": "District Name",
+					"type": "string"
+				}
+			}
+		}
+	}
+}

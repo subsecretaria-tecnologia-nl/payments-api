@@ -1,0 +1,75 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "predial.v1.response.get.schema",
+	"description": "Predial Schema of Response. Method GET.",
+	"type": "object",
+	"properties": {
+		"expedient" : {
+			"description": "Cadastral Record (Expediente Catastral)",
+			"type": "string",
+			"pattern" : "^([0-9]{2,2})-([0-9]{3,3})-([0-9]{3,3})$"
+		},
+		"district" : {
+			"description": "District Id",
+			"type": "integer",
+			"maxLength" : 2
+		},
+		"name" : {
+			"description": "Owner name",
+			"type": "string"
+		},
+		"address" : {
+			"description": "Property Address",
+			"type": "string"
+		},
+		"expiration" : {
+			"description": "Expiration Date for the information displayed",
+			"type": "string",
+			"format" : "date-time"
+		},
+		"initial_year" : {
+			"description": "Initial Year Debt",
+			"type": "string",
+			"pattern": "^([0-9]{4,4})$"
+		},
+		"resume" : {
+			"description": "Summary of the last 5 years of tax and the current year. *It can come only the current year.*",
+			"type": "object",
+			"items" : {
+				"$ref" : "#/definitions/resumeItems"
+			}
+		},
+		"total" : {
+			"description": "Total to pay",
+			"type": "number"
+		},
+		"reference": {
+			"description": "Bank reference to make the payment",
+			"type": "string"
+		}
+	},
+	"definitions" : {
+		"resumeItems" : {
+			"type" : "object",
+			"properties" : {
+				"amount" : {
+					"description": "Accumulated amount of the year",
+					"type": "number"
+				},
+				"surcharges" : {
+					"description": "Accumulated surcharges for the year",
+					"type": "number"
+				},
+				"discount" : {
+					"description": "Discount only for the current year",
+					"type": "number",
+					"optional" : true
+				},
+				"subtotal" : {
+					"description": "Subtotal to pay for the year",
+					"type": "number"
+				}
+			}
+		}
+	}
+}
