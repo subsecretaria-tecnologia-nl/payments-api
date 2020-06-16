@@ -1,0 +1,24 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "pay.v1.request.post.schema",
+	"description": "Pay Schema of Request. Method POST.",
+	"type": "object",
+	"properties": {
+		"token" : {
+			"description": "--",
+			"type": "string",
+			"maxLength" : 31,
+			"minLength" : 25
+		},
+		"url_retorno" : {
+			"description": "District Id",
+			"anyOf": [
+				{ "type": "string" },
+				{ "type": "integer" }
+			],
+			"maxLength" : 2,
+			"minLength" : 2
+		}
+	},
+	"required" : ["token", "url_retorno"]
+}
