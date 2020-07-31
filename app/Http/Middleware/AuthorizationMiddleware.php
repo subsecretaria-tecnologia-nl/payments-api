@@ -7,7 +7,7 @@ use Closure;
 use Illuminate\Contracts\Auth\Factory as Auth;
 
 class AuthorizationMiddleware
-{
+{   
     /**
     * The authentication guard factory instance.
     *

@@ -61,7 +61,8 @@ class ApiController extends Controller
         if(!method_exists($controller, $action))
             throw new ShowableException(400, "This method name doesn't exists. \\{$controllerName}::{$method}_{$action}()");
 
-        $params = (object)$request->all();
+//        $params = (object)$request->all();
+        $params = Utils::toObject($request->all());
         $schemaPathRequest = app("path")."/Schemas/request/{$version}/{$controllerName}".($actionRaw != "index" ? ".".$actionRaw : "").".{$method}.schema.json";
         $schemaRequest = (file_exists($schemaPathRequest)) ? file_get_contents($schemaPathRequest) : null;
         if($schemaRequest) SchemaValidator::validateJson($params, $schemaRequest);
