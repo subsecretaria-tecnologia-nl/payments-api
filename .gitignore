@@ -8,3 +8,5 @@ Homestead.yaml
 ## CUSTOM FILES
 project_keys.txt
 .DS_Store
+/nbproject/private/
+nbproject
