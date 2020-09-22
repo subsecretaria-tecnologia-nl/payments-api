@@ -76,13 +76,13 @@ $app->configure('app');
 //     App\Http\Middleware\ExampleMiddleware::class
 // ]);
 
+$app->middleware([
+    Fruitcake\Cors\HandleCors::class
+]);
+
 $app->routeMiddleware([
     'response' => App\Http\Middleware\ResponseMiddleware::class,
     'authorization' => App\Http\Middleware\AuthorizationMiddleware::class
-]);
-
-$app->middleware([
-    Fruitcake\Cors\HandleCors::class
 ]);
 
 /*
