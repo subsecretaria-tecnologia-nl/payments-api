@@ -6,6 +6,7 @@
     "type": "api",
     "require": {
         "php": "^7.2.5",
+        "fruitcake/laravel-cors": "^2.0",
         "laravel/lumen-framework": "^7.0",
         "league/flysystem": "^1.0",
         "swaggest/json-schema": "^0.12.29"
