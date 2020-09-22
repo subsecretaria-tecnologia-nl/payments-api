@@ -79,7 +79,7 @@ $app->configure('app');
 $app->routeMiddleware([
     'response' => App\Http\Middleware\ResponseMiddleware::class,
     'authorization' => App\Http\Middleware\AuthorizationMiddleware::class,
-        // 'cors' => App\Http\Middleware\CorsMiddleware::class,
+    'cors' => App\Http\Middleware\CorsMiddleware::class,
 ]);
 
 /*
