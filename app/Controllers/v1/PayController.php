@@ -70,7 +70,7 @@ class PayController {
                             })
                             ->select('OCB.metodopago_id', 'OT.id_transaccion_motor', 'OPT.cuentasbanco_id', 'OCB.banco_id',
                                     \DB::raw('COUNT(cuentasbanco_id) as conteoCuentas'),
-                                    'conteoTramites','OB.url_logo')
+                                    'conteoTramites','OB.imagen')
                             ->where("OT.id_transaccion_motor", "=", $folio)
                             ->groupBy('OPT.cuentasbanco_id')
                             ;
@@ -83,7 +83,7 @@ class PayController {
                 'metodo_pago' => $valor->metodopago_id,
                 'cuenta' => $valor->cuentasbanco_id,
                 'banco' => $valor->banco_id,
-                'imagen' => $valor->url_logo
+                'imagen' => $valor->imagen
             );
         }
 
@@ -150,7 +150,7 @@ class PayController {
                         ->select(
                                 'CB.metodopago_id', 'ET.entidad_id', 'ET.tipo_servicios_id', 'CB.id', 'CB.banco_id', 'E.Tipo_Descripcion',
                                 \DB::raw('(CASE WHEN PT.tramite_id IS NULL THEN 0 ELSE PT.tramite_id END) AS tramite_id'),
-                                'OB.url_logo'
+                                'OB.imagen'
                         )
                         ->where('ET.entidad_id', '=', $entidad)
                         ->whereIn("ET.tipo_servicios_id", $arrTipoServicioRequestUnico)
@@ -184,7 +184,7 @@ class PayController {
                     "cuenta_id" => $valor->id,
                     "banco_id" => $valor->banco_id,
                     "metodopago_id" => $valor->metodopago_id,
-                    "url_logo" => $valor->url_logo
+                    "imagen" => $valor->imagen
                 );
             }
             $tramiteIndex = $valor->tipo_servicios_id;
