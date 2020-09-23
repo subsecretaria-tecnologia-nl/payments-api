@@ -63,13 +63,14 @@ class PayController {
                             $query->from('oper_pagotramite as OPT')
                             ->join('oper_tramites as OT', 'OPT.tramite_id', '=', 'OT.id_tipo_servicio')
                             ->join('oper_cuentasbanco as OCB', 'OPT.cuentasbanco_id', '=', 'OCB.id')
+                                    ->join('oper_banco as OB', 'OCB.banco_id', '=', 'OB.id')
                             ->joinSub($tramitesTotales, 'TT', function ($join) {
                                 $join->on('OT.id_transaccion_motor', '=', 'TT.id_transaccion_motor')
                                 ->where('OPT.estatus', '=', 1);
                             })
                             ->select('OCB.metodopago_id', 'OT.id_transaccion_motor', 'OPT.cuentasbanco_id', 'OCB.banco_id',
                                     \DB::raw('COUNT(cuentasbanco_id) as conteoCuentas'),
-                                    'conteoTramites')
+                                    'conteoTramites','OB.url_logo')
                             ->where("OT.id_transaccion_motor", "=", $folio)
                             ->groupBy('OPT.cuentasbanco_id')
                             ;
@@ -81,7 +82,8 @@ class PayController {
             $arrCuentas[] = array(
                 'metodo_pago' => $valor->metodopago_id,
                 'cuenta' => $valor->cuentasbanco_id,
-                'banco' => $valor->banco_id
+                'banco' => $valor->banco_id,
+                'imagen' => $valor->url_logo
             );
         }
 
@@ -126,6 +128,7 @@ class PayController {
         $arrTipoServicioRequestUnico = array_unique($arrTipoServicioRequest);
         $tramitesEntidad = DB::table('oper_entidadtramite as ET')
                         ->join('egobierno.tipo_servicios as E', 'ET.tipo_servicios_id', '=', 'E.Tipo_Code')
+                        
                         ->leftJoin('oper_pagotramite as PT', function($join) {
                             $join->on('ET.tipo_servicios_id', '=', 'PT.tramite_id')
                             ->where('PT.estatus', '=', 1)
@@ -137,16 +140,17 @@ class PayController {
                                 });
                             });
                         })
-//                        ->leftJoin('oper_cuentasbanco as CB', 'PT.cuentasbanco_id', '=', 'CB.id')
                         ->leftJoin('oper_cuentasbanco as CB', function($join) use($montoMinimoTramite, $montoMaximoTramite) {
                             $join->on('PT.cuentasbanco_id', '=', 'CB.id')
                             ->where('CB.monto_min', '<=', $montoMinimoTramite)
                             ->where('CB.monto_max', '>=', $montoMaximoTramite)
                             ;
                         })
+                        ->leftJoin('oper_banco as OB', 'CB.banco_id', '=', 'OB.id')
                         ->select(
                                 'CB.metodopago_id', 'ET.entidad_id', 'ET.tipo_servicios_id', 'CB.id', 'CB.banco_id', 'E.Tipo_Descripcion',
-                                \DB::raw('(CASE WHEN PT.tramite_id IS NULL THEN 0 ELSE PT.tramite_id END) AS tramite_id')
+                                \DB::raw('(CASE WHEN PT.tramite_id IS NULL THEN 0 ELSE PT.tramite_id END) AS tramite_id'),
+                                'OB.url_logo'
                         )
                         ->where('ET.entidad_id', '=', $entidad)
                         ->whereIn("ET.tipo_servicios_id", $arrTipoServicioRequestUnico)
@@ -179,7 +183,8 @@ class PayController {
                 $arrDatosCuentas[] = array(
                     "cuenta_id" => $valor->id,
                     "banco_id" => $valor->banco_id,
-                    "metodopago_id" => $valor->metodopago_id
+                    "metodopago_id" => $valor->metodopago_id,
+                    "url_logo" => $valor->url_logo
                 );
             }
             $tramiteIndex = $valor->tipo_servicios_id;
