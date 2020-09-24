@@ -6,13 +6,13 @@ use DB;
 use App\Exceptions\ShowableException;
 use App\Utils\Utils;
 
-class DataBankController {
+class DatabankController {
 
     public static function post_index($request) {
-        DB::listen(function($query) {
-            //Imprimimos la consulta ejecutada
-            echo "<pre> {$query->sql } </pre>";
-        });
+//        DB::listen(function($query) {
+//            //Imprimimos la consulta ejecutada
+//            echo "<pre> {$query->sql } </pre>";
+//        });
         extract(get_object_vars($request));
         //obtenemos el metodo y el banco segun la cuenta que seleccionan
         $datosCuenta = DB::table('oper_cuentasbanco as CB')
@@ -30,19 +30,19 @@ class DataBankController {
                         'T.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'Tr.importe_tramite')
                 ->where('T.id_transaccion_motor', '=', $folio)
                 ->get();
-        $datosCuenta[0]->metodopago_id = 2;
-        $datosCuenta[0]->nombre = 'Bancomer';
+//        $datosCuenta[0]->metodopago_id = 1;
+//        $datosCuenta[0]->nombre = 'Bancomer';
         switch ($datosCuenta[0]->metodopago_id) {
             case "1"://Tarjeta de credito
                 $datos = datosEnvioBancoTC($datosTransaccion, $datosCuenta[0]->nombre);
                 break;
             case "2"://spei
                 //actualizamos la referencia en la transaccion
-                $datos = datosEnvioReferencia($datosTransaccion);
+                $datos = datosEnvioReferencia($datosTransaccion, 2);
                 break;
             case "3"://ventanilla
                 //actualizamos la referencia en la transaccion
-                $datos = datosEnvioReferencia($datosTransaccion);
+                $datos = datosEnvioReferencia($datosTransaccion, 3);
                 break;
 
             default:
@@ -50,7 +50,6 @@ class DataBankController {
                 break;
         }
         dd($datos);
-
         $arrRespuesta = $datos;
         return $arrRespuesta;
     }
@@ -87,7 +86,6 @@ function datosEnvioBancoTC($dT, $banco) {
             $url_response = "paginaBancomer";
             $datosBanco = array(
                 's_transm' => $idTransaccion,
-                's_transm' => $idTransaccion,
                 'c_referencia' => $referencia,
                 't_servicio' => str_pad($tipoServicioBanco, 3, "0", STR_PAD_LEFT),
                 't_importe' => $totalTransaccion,
@@ -121,33 +119,57 @@ function datosEnvioBancoTC($dT, $banco) {
         "url_response" => $url_response,
         "datos" => $datosBanco
     );
+
+    actualizaTransaccion($idTransaccion, 5);
     return $datosEnvio;
 }
 
-function datosEnvioReferencia($datosTransaccion) {
+function datosEnvioReferencia($datosTransaccion, $metodoPago) {
     $arrTramites = array();
     $idTransaccion = $idTransaccionEntidad = -1;
     $urlRetorno = $urlConfirmaPago = "";
+    $urlFormatoPago = 'http://egobierno.nl.gob.mx/egob/formatoRepositorio.php?Folio=';
+    $estatus = 60; //ventanilla
+    if ($metodoPago == 2) {//spei
+        $estatus = 70; //spei
+    }
     foreach ($datosTransaccion as $valor) {
         $idTransaccion = $valor->id_transaccion_motor;
         $idTransaccionEntidad = $valor->id_transaccion;
-        $urlRetorno =$valor->url_retorno;
-        $urlConfirmaPago =$valor->url_confirmapago;
+        $urlRetorno = $valor->url_retorno;
+        $urlConfirmaPago = $valor->url_confirmapago;
         $arrTramites[] = array(
             "id_tramite_motor" => $valor->id_tramite_motor,
             "id_tramite" => $valor->id_tramite,
-            "importe_tramite" => $valor->importe_tramite,
-            "pdf" => 'http://cfdi2.nl.gob.mx/obtXMLPDF/obtenerPDF.php?folio=NL' . $valor->id_tramite_motor,
-            "xml" => 'http://cfdi2.nl.gob.mx/obtXMLPDF/obtenerXML.php?folio=NL' . $valor->id_tramite_motor
+            "importe_tramite" => $valor->importe_tramite
         );
     }
-
     $json_retorno = array(
-        'urlRetorno' => $urlRetorno,
-        'urlConfirmaPago' => $urlConfirmaPago,
         'id_transaccion_motor' => $idTransaccion,
         'id_transaccion' => $idTransaccionEntidad,
+        'url_recibo' => $urlFormatoPago . $idTransaccion,
         'tramites' => $arrTramites
     );
-    return $json_retorno;
+    if ($urlConfirmaPago != '') {
+        consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno);
+    }
+
+    actualizaTransaccion($idTransaccion, $estatus);
+
+    $datosEnvio = array(
+        "url_response" => $urlRetorno,
+        "datos" => $json_retorno
+    );
+
+    return $datosEnvio;
+}
+
+function consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno) {
+    
+}
+
+function actualizaTransaccion($idTransaccion, $estatus) {
+    DB::table('oper_transacciones')
+            ->where('id_transaccion_motor', $idTransaccion)
+            ->update(['estatus' => $estatus]);
 }

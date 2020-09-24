@@ -6,7 +6,7 @@ use DB;
 use App\Exceptions\ShowableException;
 use App\Utils\Utils;
 
-class RespuestaBancoController {
+class RespuestabancoController {
 
     public static function post_index($request) {
 
