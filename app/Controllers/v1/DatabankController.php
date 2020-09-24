@@ -9,10 +9,10 @@ use App\Utils\Utils;
 class DatabankController {
 
     public static function post_index($request) {
-        DB::listen(function($query) {
-            //Imprimimos la consulta ejecutada
-            echo "<pre> {$query->sql } </pre>";
-        });
+//        DB::listen(function($query) {
+//            //Imprimimos la consulta ejecutada
+//            echo "<pre> {$query->sql } </pre>";
+//        });
         extract(get_object_vars($request));
         //obtenemos el metodo y el banco segun la cuenta que seleccionan
         $datosCuenta = DB::table('oper_cuentasbanco as CB')
