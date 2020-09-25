@@ -49,7 +49,7 @@ class DatabankController {
                 $datos = "ND";
                 break;
         }
-        
+
         $arrRespuesta = $datos;
         return $arrRespuesta;
     }
@@ -147,7 +147,10 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
     $json_retorno = array(
         'id_transaccion_motor' => $idTransaccion,
         'id_transaccion' => $idTransaccionEntidad,
-        'url_recibo' => $urlFormatoPago . $idTransaccion,
+        'recibo' => [
+            "url" => $urlFormatoPago . $idTransaccion,
+            "pdf" => NULL
+        ],
         'tramites' => $arrTramites
     );
     if ($urlConfirmaPago != '') {
