@@ -25,8 +25,8 @@ class DatabankController {
         $datosTransaccion = DB::table('oper_transacciones as T')
                 ->leftJoin('oper_tramites as Tr', 'T.id_transaccion_motor', '=', 'Tr.id_transaccion_motor')
                 ->select('T.id_transaccion_motor', 'T.referencia', 'T.importe_transaccion', 'Tr.nombre', 'Tr.apellido_paterno', 'Tr.apellido_materno',
-                        'Tr.razon_social', 'Tr.id_tipo_servicio', \DB::raw('JSON_EXTRACT(T.json, "$.url_retorno") url_retorno')
-                        , \DB::raw('JSON_EXTRACT(T.json, "$.url_confirma_pago") url_confirmapago'),
+                        'Tr.razon_social', 'Tr.id_tipo_servicio', \DB::raw('JSON_EXTRACT(CONVERT(T.json,CHAR), "$.url_retorno") url_retorno'),
+                         \DB::raw('JSON_EXTRACT(CONVERT(T.json,CHAR),"$.url_confirma_pago") url_confirmapago'),
                         'T.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'Tr.importe_tramite')
                 ->where('T.id_transaccion_motor', '=', $folio)
                 ->get();
