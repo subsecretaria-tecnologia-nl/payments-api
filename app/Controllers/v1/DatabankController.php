@@ -49,7 +49,7 @@ class DatabankController {
                 $datos = "ND";
                 break;
         }
-        dd($datos);
+        
         $arrRespuesta = $datos;
         return $arrRespuesta;
     }
