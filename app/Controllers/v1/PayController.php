@@ -11,11 +11,10 @@ use App\Models\OperPagoTramiteModel;
 class PayController {
 
     public static function get_index($folio) {
-//        dd($folio);//folio
-        DB::listen(function($query) {
-            //Imprimimos la consulta ejecutada
-            echo "<pre> {$query->sql } </pre>";
-        });
+//        DB::listen(function($query) {
+//            //Imprimimos la consulta ejecutada
+//            echo "<pre> {$query->sql } </pre>";
+//        });
 //         SELECT 
 //        A.id_transaccion_motor,
 //            COUNT(A.id_transaccion_motor) AS conteoTramites
@@ -63,14 +62,14 @@ class PayController {
                             $query->from('oper_pagotramite as OPT')
                             ->join('oper_tramites as OT', 'OPT.tramite_id', '=', 'OT.id_tipo_servicio')
                             ->join('oper_cuentasbanco as OCB', 'OPT.cuentasbanco_id', '=', 'OCB.id')
-                                    ->join('oper_banco as OB', 'OCB.banco_id', '=', 'OB.id')
+                            ->join('oper_banco as OB', 'OCB.banco_id', '=', 'OB.id')
                             ->joinSub($tramitesTotales, 'TT', function ($join) {
                                 $join->on('OT.id_transaccion_motor', '=', 'TT.id_transaccion_motor')
                                 ->where('OPT.estatus', '=', 1);
                             })
                             ->select('OCB.metodopago_id', 'OT.id_transaccion_motor', 'OPT.cuentasbanco_id', 'OCB.banco_id',
                                     \DB::raw('COUNT(cuentasbanco_id) as conteoCuentas'),
-                                    'conteoTramites','OB.imagen')
+                                    'conteoTramites', 'OB.imagen')
                             ->where("OT.id_transaccion_motor", "=", $folio)
                             ->groupBy('OPT.cuentasbanco_id')
                             ;
@@ -128,7 +127,6 @@ class PayController {
         $arrTipoServicioRequestUnico = array_unique($arrTipoServicioRequest);
         $tramitesEntidad = DB::table('oper_entidadtramite as ET')
                         ->join('egobierno.tipo_servicios as E', 'ET.tipo_servicios_id', '=', 'E.Tipo_Code')
-                        
                         ->leftJoin('oper_pagotramite as PT', function($join) {
                             $join->on('ET.tipo_servicios_id', '=', 'PT.tramite_id')
                             ->where('PT.estatus', '=', 1)
@@ -158,7 +156,7 @@ class PayController {
                         ->get()->toArray();
         $arrCuentasTramite = $arrCuentasFinal = $arrDatosCuentas = array();
 
-        $conteo = $tramiteIndex = $tramiteAnterior = 0;
+        $conteo = $tramiteIndex = $tramiteAnterior = $tipoTramiteGeneral = 0;
         $tramiteSinCuenta = 0;
         $tramitesDescripcion = array();
         foreach ($tramitesEntidad as $valor) {
@@ -168,7 +166,7 @@ class PayController {
                 break;
             }
             if ($conteo == 0) {
-                $tramiteAnterior = $tramiteIndex = $valor->tipo_servicios_id;
+                $tipoTramiteGeneral = $tramiteAnterior = $tramiteIndex = $valor->tipo_servicios_id;
             }
 
             if ($tramiteIndex !== $valor->tipo_servicios_id) {
@@ -224,15 +222,17 @@ class PayController {
         DB::table('oper_transacciones')->insert($datosTransaccion);
         $idTransaccionInsertada = DB::getPdo()->lastInsertId();
 
+        //calculamos la fecha limite de la referencia
+        $fechaLimiteReferencia = calcularFechaLimiteReferencia($tipoTramiteGeneral);
+
         //actualizamos la referencia en la transaccion
-        $referenciaGenerada = generarReferencia($idTransaccionInsertada);
+        $referenciaGenerada = generarReferencia($idTransaccionInsertada, $importe_transaccion, $fechaLimiteReferencia);
         DB::table('oper_transacciones')
                 ->where('id_transaccion_motor', $idTransaccionInsertada)
                 ->update(['referencia' => $referenciaGenerada]);
 
         $tramitesLista = array();
         foreach ($tramite as $key) {//recorremos los tramites para crear la insersion 
-//            dd($key->datos_factura,$key->datos_solicitante, $key->datos_solicitante->nombre);
             $datosSolicitante = $key->datos_solicitante;
             $datosFactura = $key->datos_factura;
             //insertamos el tramite
@@ -325,6 +325,7 @@ class PayController {
             );
         }
         $arrRespuesta = array(
+            "referencia" => $referenciaGenerada,
             "folio" => $idTransaccionInsertada,
             "cuentas" => $arrDatosCuentas,
             "tramites" => $tramitesLista
@@ -334,19 +335,112 @@ class PayController {
 
 }
 
-function generarReferencia($idTransaccion) {
-    $referencia = 11; //(2)numero fijo
-    $referencia .= obtenerIdentificadorReferencia(); //(8)identificador de referencia
-    $referencia .= $idTransaccion; //(8)id transaccion
+function calcularFechaLimiteReferencia($tipoServicio) {
+    $datosLimite = DB::table('oper_limitereferencia as A')
+                    ->join('egobierno.tipo_servicios as B', 'A.id', '=', 'B.limitereferencia_id')
+                    ->select('A.vencimiento', 'A.periodicidad')
+                    ->where('B.tipo_code', $tipoServicio)
+                    ->get()->toArray();
+
+    $periodicidad = isset($datosLimite['periodicidad']) ? $datosLimite['periodicidad'] : "ND";
+    $vigencia = isset($datosLimite['vencimiento']) ? $datosLimite['vencimiento'] : "0";
+
+    $anio = date("Y");
+    $mes = date("m");
+    $dia = date("d");
+
+    $periodicidad = "Mensual";
+    $vigencia = 2;
+    switch ($periodicidad) {
+        case "Anual":
+            if ($vigencia < $mes) {
+                $anio += 1;
+            }
+            $fechaLimite = date("Y-m-t", strtotime($anio . "-" . $vigencia . "-" . $dia));
+            break;
+        case "Mensual":
+
+            if ($vigencia == 0) {
+                $fechaLimite = date("Y-m-t", strtotime($anio . "-" . $mes . "-" . $dia));
+            } else {
+                $fechaLimite = fechaVigenciaMensual($dia);
+            }
+
+            break;
+
+        default:
+            break;
+    }
+    return $fechaLimite;
+}
+
+function validaFechaVigenciaEstablecida($dia){
+    $fechaVigenciaEstablecidaTemp = date("Y-m-d", strtotime(date("Y") . "-" . date("m") . "-" . $dia));
+    //validamos que la fecha limite establecida no sea ni sabado ni domingo
+    $diasSumados = 0;
+    $diaSemana = date("w", strtotime($fechaVigenciaEstablecidaTemp));
+    if ($diaSemana == 6) {//si es sabado sumamos 2 dias
+        $diasSumados = 2;
+    } elseif ($diaSemana == 0) {//si es domingo sumamos 1 dia
+        $diasSumados = 1;
+    }
+    $fechaVigenciaEstablecida = date("Y-m-d", strtotime($fechaVigenciaEstablecidaTemp . "+ ".$diasSumados." days"));
+    return $fechaVigenciaEstablecida;
+}
+function fechaVigenciaMensual($dia) {
+    $diasVigencia=3;
+    $hoy = date("Y-m-d");
+    $fechaVigenciaEstablecida=validaFechaVigenciaEstablecida($dia);
+    $fechaVigencia = date("Y-m-d", strtotime($hoy . "+ 5 days"));
+    //regresa la fecha contando 3 dias habiles omitiendo los feriados
+    $fechaVigenciaBD = DB::select('SELECT nuevaFechaHabil(now(), '.$diasVigencia.' , 1) AS Resultado');
+
+    if (isset($fechaVigenciaBD[0]->Resultado) && $fechaVigenciaBD[0]->Resultado != "") {
+        $fechaVigencia = $fechaVigenciaBD[0]->Resultado;
+    }
+    
+    $revisarFecha = explode("-", $fechaVigencia);
+    $mes = date("m");
+    $datetime1 = date_create($fechaVigencia);
+    $datetime2 = date_create($fechaVigenciaEstablecida);
+    $contador = date_diff($datetime1, $datetime2);
+    $differenceFormat = '%a';
+
+
+    if ( 
+            $fechaVigenciaEstablecida < $fechaVigencia //y la fecha de vigencia es mayor
+            && ($contador->format($differenceFormat) <= $diasVigencia)
+    ) {
+       $fechaVigencia=$fechaVigenciaEstablecida;
+    }
+    
+
+    return $fechaVigencia;
+}
+
+function generarReferencia($idTransaccion, $importe_transaccion, $fechaLimiteReferencia) {
+    $referencia = 11; //(2)servicio numero fjo 
+    $referencia .= obtenerIdentificadorReferencia(); //(8)identificador de referencia se obtiene de base de datos
+    $referencia .= str_pad($idTransaccion, 10, 0, STR_PAD_LEFT); //(10)id transaccion
     $referencia .= date("m"); //(2)periodo
-    $referencia .= obtenerFechaCondensada($idTransaccion); //(4)fecha condensada
-    $referencia .= obtenerImporteCondensado($idTransaccion); //(1)importe condensada
-    $referencia .= obtenerVerificador($referencia); //(2)verificador
+    $referencia .= obtenerFechaCondensada($fechaLimiteReferencia); //(4)fecha condensada
+    $referencia .= obtenerImporteCondensado($importe_transaccion); //(1)importe condensada
+    $referencia .= 2; //(1)Verficador
+    $referencia .= obtenerVerificador($referencia); //(2)digito verificador
     return $referencia;
 }
 
-function obtenerFechaCondensada($idTransaccion) {
-    return "2342";
+function obtenerFechaCondensada($fechaLimiteReferencia) {
+
+    $fechaLimite = explode("-", $fechaLimiteReferencia);
+
+    $primerOp = ($fechaLimite[0] - 2013) * 372;
+    $segundoOp = ($fechaLimite[1] - 1) * 31;
+    $terceOp = $fechaLimite[2] - 1;
+
+    $fechaCondensada = $primerOp + $segundoOp + $terceOp;
+
+    return $fechaCondensada;
 }
 
 function obtenerIdentificadorReferencia() {
@@ -354,10 +448,24 @@ function obtenerIdentificadorReferencia() {
     return $idReferencia[0]->IdentificadorReferencia;
 }
 
-function obtenerImporteCondensado($idTransaccion) {
-    return "7";
+function obtenerImporteCondensado($importe) {
+    $importeInicial = number_format($importe, 2, '', '');
+    $listaFactosMultiplicacion = "73173173173173173173";
+    $suma = 0;
+    for ($i = 0; $i < strlen($importeInicial); $i++) {
+        $suma += $importeInicial[$i] * $listaFactosMultiplicacion[$i];
+    }
+    $importeCondesado = $suma % 10;
+    return $importeCondesado;
 }
 
 function obtenerVerificador($referencia) {
-    return 68;
+    $listaFactorMultiplicacion = array(11, 13, 17, 19, 23, 11, 13, 17, 19, 23, 11, 13, 17, 19, 23, 11, 13, 17, 19, 23, 11, 13, 17, 19, 23, 11, 13, 17);
+    $suma = 0;
+    for ($i = 0; $i < strlen($referencia); $i++) {
+        $suma += $referencia[$i] * $listaFactorMultiplicacion[$i];
+    }
+    $digitoVerificador = ($suma % 97) + 1;
+
+    return str_pad($digitoVerificador, 2, 0, STR_PAD_LEFT);
 }
