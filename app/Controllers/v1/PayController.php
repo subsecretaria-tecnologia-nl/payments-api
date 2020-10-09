@@ -192,7 +192,6 @@ class PayController {
 
         $arrTipoServicioQueryUnico = array_unique($arrTipoServicioQuery);
 
-
         if ($tramiteSinCuenta == 1)
             throw new ShowableException(422, "El Tramite no contiene cuenta(s) asosiada(s)");
 
@@ -235,7 +234,7 @@ class PayController {
         foreach ($tramite as $key) {//recorremos los tramites para crear la insersion 
             $datosSolicitante = $key->datos_solicitante;
             $datosFactura = $key->datos_factura;
-            //insertamos el tramite
+            //insertamos el tramite.
             $datosTramite = [
                 'id_transaccion_motor' => $idTransaccionInsertada,
                 'id_tramite' => $key->id_tramite,
@@ -318,7 +317,7 @@ class PayController {
                             ->update(['importe_descuento' => $sumaDescuento]);
                 }
             }
-            $tramitesLista[] = array(
+            $tramitesLista[] = array( 
                 "descripcion" => $tramitesDescripcion[$key->id_tipo_servicio],
                 "importe" => "$" . $key->importe_tramite,
                 "detalle" => $detalleLista
@@ -342,15 +341,12 @@ function calcularFechaLimiteReferencia($tipoServicio) {
                     ->where('B.tipo_code', $tipoServicio)
                     ->get()->toArray();
 
-    $periodicidad = isset($datosLimite['periodicidad']) ? $datosLimite['periodicidad'] : "ND";
-    $vigencia = isset($datosLimite['vencimiento']) ? $datosLimite['vencimiento'] : "0";
+    $periodicidad = isset($datosLimite[0]->periodicidad) ? $datosLimite[0]->periodicidad : "Anual";
+    $vigencia = isset($datosLimite[0]->vencimiento) ? $datosLimite[0]->vencimiento : "1";
 
     $anio = date("Y");
     $mes = date("m");
     $dia = date("d");
-
-    $periodicidad = "Mensual";
-    $vigencia = 2;
     switch ($periodicidad) {
         case "Anual":
             if ($vigencia < $mes) {
@@ -374,7 +370,7 @@ function calcularFechaLimiteReferencia($tipoServicio) {
     return $fechaLimite;
 }
 
-function validaFechaVigenciaEstablecida($dia){
+function validaFechaVigenciaEstablecida($dia) {
     $fechaVigenciaEstablecidaTemp = date("Y-m-d", strtotime(date("Y") . "-" . date("m") . "-" . $dia));
     //validamos que la fecha limite establecida no sea ni sabado ni domingo
     $diasSumados = 0;
@@ -384,21 +380,22 @@ function validaFechaVigenciaEstablecida($dia){
     } elseif ($diaSemana == 0) {//si es domingo sumamos 1 dia
         $diasSumados = 1;
     }
-    $fechaVigenciaEstablecida = date("Y-m-d", strtotime($fechaVigenciaEstablecidaTemp . "+ ".$diasSumados." days"));
+    $fechaVigenciaEstablecida = date("Y-m-d", strtotime($fechaVigenciaEstablecidaTemp . "+ " . $diasSumados . " days"));
     return $fechaVigenciaEstablecida;
 }
+
 function fechaVigenciaMensual($dia) {
-    $diasVigencia=3;
+    $diasVigencia = 3;
     $hoy = date("Y-m-d");
-    $fechaVigenciaEstablecida=validaFechaVigenciaEstablecida($dia);
+    $fechaVigenciaEstablecida = validaFechaVigenciaEstablecida($dia);
     $fechaVigencia = date("Y-m-d", strtotime($hoy . "+ 5 days"));
     //regresa la fecha contando 3 dias habiles omitiendo los feriados
-    $fechaVigenciaBD = DB::select('SELECT nuevaFechaHabil(now(), '.$diasVigencia.' , 1) AS Resultado');
+    $fechaVigenciaBD = DB::select('SELECT nuevaFechaHabil(now(), ' . $diasVigencia . ' , 1) AS Resultado');
 
     if (isset($fechaVigenciaBD[0]->Resultado) && $fechaVigenciaBD[0]->Resultado != "") {
         $fechaVigencia = $fechaVigenciaBD[0]->Resultado;
     }
-    
+
     $revisarFecha = explode("-", $fechaVigencia);
     $mes = date("m");
     $datetime1 = date_create($fechaVigencia);
@@ -407,13 +404,13 @@ function fechaVigenciaMensual($dia) {
     $differenceFormat = '%a';
 
 
-    if ( 
+    if (
             $fechaVigenciaEstablecida < $fechaVigencia //y la fecha de vigencia es mayor
             && ($contador->format($differenceFormat) <= $diasVigencia)
     ) {
-       $fechaVigencia=$fechaVigenciaEstablecida;
+        $fechaVigencia = $fechaVigenciaEstablecida;
     }
-    
+
 
     return $fechaVigencia;
 }
@@ -433,7 +430,6 @@ function generarReferencia($idTransaccion, $importe_transaccion, $fechaLimiteRef
 function obtenerFechaCondensada($fechaLimiteReferencia) {
 
     $fechaLimite = explode("-", $fechaLimiteReferencia);
-
     $primerOp = ($fechaLimite[0] - 2013) * 372;
     $segundoOp = ($fechaLimite[1] - 1) * 31;
     $terceOp = $fechaLimite[2] - 1;
@@ -450,10 +446,17 @@ function obtenerIdentificadorReferencia() {
 
 function obtenerImporteCondensado($importe) {
     $importeInicial = number_format($importe, 2, '', '');
+
+
     $listaFactosMultiplicacion = "73173173173173173173";
     $suma = 0;
-    for ($i = 0; $i < strlen($importeInicial); $i++) {
-        $suma += $importeInicial[$i] * $listaFactosMultiplicacion[$i];
+
+
+    $longitudCantidad = strlen($importeInicial) - 1;
+    for ($i = $longitudCantidad; $i >= 0; $i--) {
+        $j = abs($i - $longitudCantidad);
+        $suma += $importeInicial[$i] * $listaFactosMultiplicacion[$j];
+        $mul = $importeInicial[$i] * $listaFactosMultiplicacion[$j];
     }
     $importeCondesado = $suma % 10;
     return $importeCondesado;
@@ -462,8 +465,10 @@ function obtenerImporteCondensado($importe) {
 function obtenerVerificador($referencia) {
     $listaFactorMultiplicacion = array(11, 13, 17, 19, 23, 11, 13, 17, 19, 23, 11, 13, 17, 19, 23, 11, 13, 17, 19, 23, 11, 13, 17, 19, 23, 11, 13, 17);
     $suma = 0;
-    for ($i = 0; $i < strlen($referencia); $i++) {
-        $suma += $referencia[$i] * $listaFactorMultiplicacion[$i];
+    $longitudReferencia = strlen($referencia) - 1;
+    for ($i = $longitudReferencia; $i >= 0; $i--) {
+        $j = abs($i - $longitudReferencia);
+        $suma += $referencia[$i] * $listaFactorMultiplicacion[$j];
     }
     $digitoVerificador = ($suma % 97) + 1;
 
