@@ -26,7 +26,7 @@ class DatabankController {
                 ->leftJoin('oper_tramites as Tr', 'T.id_transaccion_motor', '=', 'Tr.id_transaccion_motor')
                 ->select('T.id_transaccion_motor', 'T.referencia', 'T.importe_transaccion', 'Tr.nombre', 'Tr.apellido_paterno', 'Tr.apellido_materno',
                         'Tr.razon_social', 'Tr.id_tipo_servicio', \DB::raw('JSON_EXTRACT(CONVERT(T.json,CHAR), "$.url_retorno") url_retorno'),
-                         \DB::raw('JSON_EXTRACT(CONVERT(T.json,CHAR),"$.url_confirma_pago") url_confirmapago'),
+                        \DB::raw('JSON_EXTRACT(CONVERT(T.json,CHAR),"$.url_confirma_pago") url_confirmapago'),
                         'T.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'Tr.importe_tramite')
                 ->where('T.id_transaccion_motor', '=', $folio)
                 ->get();
@@ -49,9 +49,7 @@ class DatabankController {
                 $datos = "ND";
                 break;
         }
-        dd($datos);
-        $arrRespuesta = $datos;
-        return $arrRespuesta;
+        return $datos;
     }
 
 }
@@ -70,7 +68,7 @@ function tipoServicioBanco($tipoServicioRepositorio, $banco) {
     return $tipoServicioBanco;
 }
 
-function datosEnvioBancoTC($dT, $banco) {
+function datosEnvioBancoTC($dT, $banco) { 
     $primerRegistro = $dT[0];
     $tipoServicioRepositorio = $primerRegistro->id_tipo_servicio;
     $tipoServicioBanco = tipoServicioBanco($tipoServicioRepositorio, $banco);
@@ -135,6 +133,7 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
     }
     foreach ($datosTransaccion as $valor) {
         $idTransaccion = $valor->id_transaccion_motor;
+        $referencia = $valor->referencia;
         $idTransaccionEntidad = $valor->id_transaccion;
         $urlRetorno = $valor->url_retorno;
         $urlConfirmaPago = $valor->url_confirmapago;
@@ -147,6 +146,9 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
     $json_retorno = array(
         'id_transaccion_motor' => $idTransaccion,
         'id_transaccion' => $idTransaccionEntidad,
+        'mensaje' => "referencia",
+        'estatus' => "2",
+        'referencia' => $referencia,
         'url_recibo' => $urlFormatoPago . $idTransaccion,
         'tramites' => $arrTramites
     );
@@ -165,7 +167,7 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
 }
 
 function consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno) {
-    
+    //pendiente
 }
 
 function actualizaTransaccion($idTransaccion, $estatus) {
