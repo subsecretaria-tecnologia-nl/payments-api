@@ -192,7 +192,6 @@ class PayController {
 
         $arrTipoServicioQueryUnico = array_unique($arrTipoServicioQuery);
 
-
         if ($tramiteSinCuenta == 1)
             throw new ShowableException(422, "El Tramite no contiene cuenta(s) asosiada(s)");
 
@@ -235,7 +234,7 @@ class PayController {
         foreach ($tramite as $key) {//recorremos los tramites para crear la insersion 
             $datosSolicitante = $key->datos_solicitante;
             $datosFactura = $key->datos_factura;
-            //insertamos el tramite
+            //insertamos el tramite.
             $datosTramite = [
                 'id_transaccion_motor' => $idTransaccionInsertada,
                 'id_tramite' => $key->id_tramite,
@@ -318,7 +317,7 @@ class PayController {
                             ->update(['importe_descuento' => $sumaDescuento]);
                 }
             }
-            $tramitesLista[] = array(
+            $tramitesLista[] = array( 
                 "descripcion" => $tramitesDescripcion[$key->id_tipo_servicio],
                 "importe" => "$" . $key->importe_tramite,
                 "detalle" => $detalleLista
