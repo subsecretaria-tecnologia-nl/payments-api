@@ -18,7 +18,7 @@ class DatabankController {
         $datosCuenta = DB::table('oper_cuentasbanco as CB')
                 ->join('oper_banco as OB', 'OB.id', '=', 'CB.banco_id')
                 ->where('CB.id', '=', $cuenta_id)
-                ->select('CB.metodopago_id', 'CB.banco_id', 'OB.nombre')
+                ->select('CB.metodopago_id', 'CB.banco_id', 'OB.nombre AS nombre_banco')
                 ->get();
 
         //obtenemos los datos de la transaccion
@@ -34,7 +34,7 @@ class DatabankController {
 //        $datosCuenta[0]->nombre = 'Bancomer';
         switch ($datosCuenta[0]->metodopago_id) {
             case "1"://Tarjeta de credito
-                $datos = datosEnvioBancoTC($datosTransaccion, $datosCuenta[0]->nombre);
+                $datos = datosEnvioBancoTC($datosTransaccion, $datosCuenta[0]->nombre_banco);
                 break;
             case "2"://spei
                 //actualizamos la referencia en la transaccion
@@ -43,6 +43,10 @@ class DatabankController {
             case "3"://ventanilla
                 //actualizamos la referencia en la transaccion
                 $datos = datosEnvioReferencia($datosTransaccion, 3);
+                break;
+            case "4"://bancos en linea
+                //actualizamos la referencia en la transaccion
+                $datos = datosEnvioBancoLinea($datosTransaccion, $datosCuenta[0]->nombre_banco);
                 break;
 
             default:
@@ -68,6 +72,59 @@ function tipoServicioBanco($tipoServicioRepositorio, $banco) {
     return $tipoServicioBanco;
 }
 
+function datosEnvioBancoLinea($dT, $banco) {
+    $primerRegistro = $dT[0];
+    $tipoServicioRepositorio = $primerRegistro->id_tipo_servicio;
+    $tipoServicioBanco = tipoServicioBanco($tipoServicioRepositorio, $banco);
+    $idTransaccion = $primerRegistro->id_transaccion_motor;
+    $totalTransaccion = $primerRegistro->importe_transaccion;
+    $referencia = $primerRegistro->referencia;
+    $nombreRS = trim(
+            $primerRegistro->nombre . ' ' . $primerRegistro->apellido_paterno . ' ' . $primerRegistro->apellido_materno . ' ' .
+            $primerRegistro->razon_social
+    );
+    switch ($banco) {
+        case "Bancomer"://bancomer
+            $url_response = "paginaBancomerLinea";
+            $datosBanco = array(
+                's_transm' => $idTransaccion,
+                'c_referencia' => $referencia,
+                't_servicio' => str_pad($tipoServicioBanco, 3, "0", STR_PAD_LEFT),
+                't_importe' => $totalTransaccion,
+                'n_contribuyente' => $nombreRS,
+                'val_1' => number_format("0", 2),
+                'val_2' => $dT[0]->id_tipo_servicio == 168 ? "8100000000" : "", // telefono
+                'val_3' => "", // correo
+                'val_4' => "A",
+                'val_8' => "100", //tipopago del banco (TC)
+                'mp_signature' => hash_hmac('sha256', $dT[0]->id_transaccion_motor . $dT[0]->referencia . $dT[0]->importe_transaccion, 'Nljuk3u99D8383899XE8399NLi98I653rv8273WQ80202mUbbI28AO762i3828')
+            );
+            break;
+        case "Banamex":
+            $url_response = "paginaBanamex";
+            $datosBanco = array(
+            );
+            break;
+        case "Santander":
+            $url_response = "paginaBanamex";
+            $datosBanco = array(
+            );
+            break;
+        default:
+            $url_response = "paginaError";
+            $datosBanco = array(
+                "dato" => "1"
+            );
+            break;
+    }
+    $datosEnvio = array(
+        "url_response" => $url_response,
+        "datos" => $datosBanco
+    );
+
+    actualizaTransaccion($idTransaccion, 5);
+    return $datosEnvio;
+} 
 function datosEnvioBancoTC($dT, $banco) { 
     $primerRegistro = $dT[0];
     $tipoServicioRepositorio = $primerRegistro->id_tipo_servicio;
