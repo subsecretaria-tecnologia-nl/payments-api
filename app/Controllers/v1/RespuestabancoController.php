@@ -18,6 +18,9 @@ class RespuestabancoController {
         $tipopago = -1;
         $arrTramites = array();
 
+        $referencia= $ttlTr= $Autorizacion=0;
+        
+        
         //validamos las variables de los bancos
         if (isset($request->REFER_PGO)) {//variable de banamex
             $tipopago = 3;
@@ -49,7 +52,7 @@ class RespuestabancoController {
                 $estatus = 1;
                 $status = 0;
                 $mensaje = 'correcto';
-                $url_recibo = 'https://egobierno.nl.gob.mx/egob/reciboGPM.php?folio=' . $idTransaccion; 
+                $url_recibo = 'https://egobierno.nl.gob.mx/egob/reciboGPM.php?folio=' . $idTransaccion;
             }
         } else if (isset($request->transaction->merchantReferenceCode)) {//variable de netpay
             $tipopago = 26;
@@ -68,7 +71,9 @@ class RespuestabancoController {
         $datosRespuesta['datos']['mensaje'] = $mensaje;
         $datosRespuesta['datos']['estatus'] = $estatus;
         $datosRespuesta['datos']['url_recibo'] = $url_recibo;
-        
+        $datosRespuesta['datos']['pHash'] = $idTransaccion . "_" . $referencia . "_" . $ttlTr . "_" . $Autorizacion;
+        $datosRespuesta['datos']['hash'] = $regHash;
+
         return $datosRespuesta;
     }
 
@@ -106,6 +111,7 @@ function datosTransaccion($idTransaccion) {
     );
     return $datos;
 }
+
 //actualizamos el estatus de la transaccion
 function actualizaTransaccion($idTransaccion, $estatus) {
     DB::table('oper_transacciones')
