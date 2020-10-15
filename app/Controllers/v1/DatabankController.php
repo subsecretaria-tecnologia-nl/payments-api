@@ -210,7 +210,7 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
         'recibo' => [
             'url' => $urlFormatoPago . $idTransaccion,
             'pdf' => null
-        ]
+        ],
         'tramites' => $arrTramites
     );
     if ($urlConfirmaPago != '') {
