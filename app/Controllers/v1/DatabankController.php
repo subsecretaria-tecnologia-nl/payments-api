@@ -59,16 +59,23 @@ class DatabankController {
 }
 
 function tipoServicioBanco($tipoServicioRepositorio, $banco) {
-
     $tipoServicio = DB::table('egobierno.tiposerviciobancos as TSB')
-            ->select('TSB.Code_Banco')
+            ->join('egobierno.tipo_servicios as TS', 'TSB.Tipo_Code', '=', 'TS.Tipo_Code')
+            ->select('TSB.Code_Banco', 'TS.Tipo_Descripcion')
             ->where('TSB.Tipo_Code', '=', $tipoServicioRepositorio)
             ->where('TSB.Banco', '=', $banco)
             ->get();
-    $tipoServicioBanco = 00;
+    $tipoServicioBanco = array(
+        'id' => 00,
+        'descripcion' => 'ND'
+    );
     if (count($tipoServicio) > 0) {
-        $tipoServicioBanco = $tipoServicio[0]->Code_Banco;
+        $tipoServicioBanco = array(
+            'id' => $tipoServicio[0]->Code_Banco,
+            'descripcion' => $tipoServicio[0]->Tipo_Descripcion
+        );
     }
+
     return $tipoServicioBanco;
 }
 
@@ -76,6 +83,7 @@ function datosEnvioBancoLinea($dT, $banco) {
     $primerRegistro = $dT[0];
     $tipoServicioRepositorio = $primerRegistro->id_tipo_servicio;
     $tipoServicioBanco = tipoServicioBanco($tipoServicioRepositorio, $banco);
+    
     $idTransaccion = $primerRegistro->id_transaccion_motor;
     $totalTransaccion = $primerRegistro->importe_transaccion;
     $referencia = $primerRegistro->referencia;
@@ -89,7 +97,7 @@ function datosEnvioBancoLinea($dT, $banco) {
             $datosBanco = array(
                 's_transm' => $idTransaccion,
                 'c_referencia' => $referencia,
-                't_servicio' => str_pad($tipoServicioBanco, 3, "0", STR_PAD_LEFT),
+                't_servicio' => str_pad($tipoServicioBanco['id'], 3, "0", STR_PAD_LEFT),
                 't_importe' => $totalTransaccion,
                 'n_contribuyente' => $nombreRS,
                 'val_1' => number_format("0", 2),
@@ -99,16 +107,36 @@ function datosEnvioBancoLinea($dT, $banco) {
                 'val_8' => "100", //tipopago del banco (TC)
                 'mp_signature' => hash_hmac('sha256', $dT[0]->id_transaccion_motor . $dT[0]->referencia . $dT[0]->importe_transaccion, 'Nljuk3u99D8383899XE8399NLi98I653rv8273WQ80202mUbbI28AO762i3828')
             );
+            actualizaTipoPago($idTransaccion, 9); //bancomer
             break;
         case "Banamex":
             $url_response = "paginaBanamex";
+            $totalTramite_ = number_format($totalTransaccion, 2, '.', '');
+            $extrados = extradosBanamex($tipoServicioRepositorio, $idTransaccion, $totalTramite_);
             $datosBanco = array(
+                'EWF_SYS_0' => '4eebd5b1-3824-11d5-929d-0050dae9973a',
+                'EWF_FORM_NAME' => 'index',
+                'BANKID' => 'EDIFY',
+                'PRODUCTNAME' => 'EBS',
+                'EWFBUTTON' => '',
+                'EXTRA1' => 'SPANISH',
+                'EXTRA2' => $extrados,
+                'EXTRA3' => '',
+                'EXTRA4' => 'NO_ERROR',
+                'LANGUAJEID' => '1',
+                't1' => $totalTransaccion,
+                'total_pagar_cc' => $totalTramite_,
+                'mens' => '0',
+                'imp' => $totalTramite_
             );
+
+            actualizaTipoPago($idTransaccion, 3); //banamex
             break;
-        case "Santander":
+        case "Scotiabank":
             $url_response = "paginaBanamex";
             $datosBanco = array(
             );
+            actualizaTipoPago($idTransaccion, 10); //scotiabank
             break;
         default:
             $url_response = "paginaError";
@@ -122,10 +150,11 @@ function datosEnvioBancoLinea($dT, $banco) {
         "datos" => $datosBanco
     );
 
-    actualizaTransaccion($idTransaccion, 5);
+    actualizaEstatusTransaccion($idTransaccion, 5);
     return $datosEnvio;
-} 
-function datosEnvioBancoTC($dT, $banco) { 
+}
+
+function datosEnvioBancoTC($dT, $banco) {
     $primerRegistro = $dT[0];
     $tipoServicioRepositorio = $primerRegistro->id_tipo_servicio;
     $tipoServicioBanco = tipoServicioBanco($tipoServicioRepositorio, $banco);
@@ -142,7 +171,7 @@ function datosEnvioBancoTC($dT, $banco) {
             $datosBanco = array(
                 's_transm' => $idTransaccion,
                 'c_referencia' => $referencia,
-                't_servicio' => str_pad($tipoServicioBanco, 3, "0", STR_PAD_LEFT),
+                't_servicio' => str_pad($tipoServicioBanco['id'], 3, "0", STR_PAD_LEFT),
                 't_importe' => $totalTransaccion,
                 'n_contribuyente' => $nombreRS,
                 'val_1' => number_format("0", 2),
@@ -152,16 +181,19 @@ function datosEnvioBancoTC($dT, $banco) {
                 'val_8' => "010", //tipopago del banco (TC)
                 'mp_signature' => hash_hmac('sha256', $dT[0]->id_transaccion_motor . $dT[0]->referencia . $dT[0]->importe_transaccion, 'Nljuk3u99D8383899XE8399NLi98I653rv8273WQ80202mUbbI28AO762i3828')
             );
+            actualizaTipoPago($idTransaccion, 8); //bancomer TC
             break;
         case "NetPay"://netpay
             $url_response = "paginaNetPay";
             $datosBanco = array(
             );
+            actualizaTipoPago($idTransaccion, 26); //netpay
             break;
         case "Banamex"://netpay
             $url_response = "paginaBanamex";
             $datosBanco = array(
             );
+            actualizaTipoPago($idTransaccion, 3); //banamex
             break;
         default:
             $url_response = "paginaError";
@@ -175,7 +207,7 @@ function datosEnvioBancoTC($dT, $banco) {
         "datos" => $datosBanco
     );
 
-    actualizaTransaccion($idTransaccion, 5);
+    actualizaEstatusTransaccion($idTransaccion, 5);
     return $datosEnvio;
 }
 
@@ -183,7 +215,7 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
     $arrTramites = array();
     $idTransaccion = $idTransaccionEntidad = -1;
     $urlRetorno = $urlConfirmaPago = "";
-    $urlFormatoPago = 'http://egobierno.nl.gob.mx/egob/formatoRepositorio.php?Folio=';
+    $urlFormatoPago = 'http://egobierno.nl.gob.mx/egob/formatoRepositorioQA.php?Folio=';
     $estatus = 60; //ventanilla
     if ($metodoPago == 2) {//spei
         $estatus = 70; //spei
@@ -217,7 +249,7 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
         consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno);
     }
 
-    actualizaTransaccion($idTransaccion, $estatus);
+    actualizaEstatusTransaccion($idTransaccion, $estatus);
 
     $datosEnvio = array(
         "url_response" => $urlRetorno,
@@ -231,8 +263,74 @@ function consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno) {
     //pendiente
 }
 
-function actualizaTransaccion($idTransaccion, $estatus) {
+function actualizaTipoPago($idTransaccion, $tipoPago) {
+    DB::table('oper_transacciones')
+            ->where('id_transaccion_motor', $idTransaccion)
+            ->update(['tipo_pago' => $tipoPago]);
+}
+
+function actualizaEstatusTransaccion($idTransaccion, $estatus) {
     DB::table('oper_transacciones')
             ->where('id_transaccion_motor', $idTransaccion)
             ->update(['estatus' => $estatus]);
+}
+
+function extradosBanamex($ts, $folio, $importe) {
+
+    $control = DB::table('egobierno.control as C')->get()->toArray();
+
+    if ($ts == 1) {
+        $suma = 559 + 899;
+    } else {
+        $suma = 319 + 635;
+    }
+
+// Genera digito verificador
+    $Verifica = str_pad($folio, 8, '0', STR_PAD_LEFT);
+
+    for ($i = 0; $i <= 7; $i++) {
+
+        $Valor = substr($Verifica, $i, 1);
+        switch ($i) {
+            case 0:
+                $suma = $suma + ($Valor * 11);
+                break;
+            case 1:
+                $suma = $suma + ($Valor * 13);
+                break;
+            case 2:
+                $suma = $suma + ($Valor * 17);
+                break;
+            case 3:
+                $suma = $suma + ($Valor * 19);
+                break;
+            case 4:
+                $suma = $suma + ($Valor * 23);
+                break;
+            case 5:
+                $suma = $suma + ($Valor * 29);
+                break;
+            case 6:
+                $suma = $suma + ($Valor * 31);
+                break;
+            case 7:
+                $suma = $suma + ($Valor * 37);
+                break;
+        }
+    }
+
+    $r = fmod($suma, 97);
+    $digito = 99 - $r;
+    $Long = strlen($folio) + 2;
+    $folioDig = str_pad($folio, $Long, $digito, STR_PAD_RIGHT);
+
+    //verifica servicio
+    $tipoServicioBanco = tipoServicioBanco($ts, 'Banamex');
+
+    // Arma variable EXTRA2
+    
+    $EXTRA2 = $control[0]->Banamex_Cliente . '|' . $control[0]->Banamex_Dominio . '|' . $tipoServicioBanco['id'];
+    $EXTRA2 = $EXTRA2 . '|' . number_format($importe, 2, "", "") . '|99/99/9999|' . $tipoServicioBanco['descripcion'];
+    $EXTRA2 = $EXTRA2 . '|' . $folioDig;
+    return $EXTRA2;
 }

@@ -15,28 +15,23 @@ class RespuestabancoController {
         $estatus = 0; //estatus del la respuesta
         $mensaje = 'error'; //mensaje del servicio
         $url_recibo = "";
-        $tipopago = -1;
-        $arrTramites = array();
 
         $referencia= $ttlTr= $Autorizacion=0;
         
-        
         //validamos las variables de los bancos
         if (isset($request->REFER_PGO)) {//variable de banamex
-            $tipopago = 3;
-            $status = 5; //tramite no autorizado
-
+            
             $idTransaccion = (isset($request->REFER_PGO)) ? substr($request->REFER_PGO, 0, -2) : "";
+            $datosRespuesta = datosTransaccion($idTransaccion);
             $status = 15; //tramite no autorizado
             if (isset($request->AUTORIZA) && !empty($request->AUTORIZA)) {
                 $status = 0;
                 $estatus = 1;
                 $mensaje = 'correcto';
-                $url_recibo = 'https://egobierno.nl.gob.mx/egob/reciboGPM.php?folio=' . $idTransaccion;
+                $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
             }
         } else if (isset($request->mp_response)) {//variable de bancomer
-            $tipopago = 8;
-            $status = 5; //tramite no autorizado
+            $status = 15; //tramite no autorizado
             $idTransaccion = (isset($request->s_transm)) ? $request->s_transm : "";
             $datosRespuesta = datosTransaccion($idTransaccion);
             $impbco = isset($datosRespuesta['datos']['importe_transaccion']) ? $datosRespuesta['datos']['importe_transaccion'] : 0;
@@ -52,11 +47,10 @@ class RespuestabancoController {
                 $estatus = 1;
                 $status = 0;
                 $mensaje = 'correcto';
-                $url_recibo = 'https://egobierno.nl.gob.mx/egob/reciboGPM.php?folio=' . $idTransaccion;
+                $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
             }
         } else if (isset($request->transaction->merchantReferenceCode)) {//variable de netpay
-            $tipopago = 26;
-            $status = 5; //tramite no autorizado
+            $status = 15; //tramite no autorizado
             $idTransaccion = (isset($request->transaction->merchantReferenceCode)) ? $request->transaction->merchantReferenceCode : "";
             $impbco = (isset($request->transaction->totalAmount)) ? $request->transaction->totalAmount : "";
             $response = (isset($request->response->responseCode)) ? $request->response->responseCode : "";
@@ -64,7 +58,7 @@ class RespuestabancoController {
             if ($response == "00") {
                 $estatus = 1;
                 $status = 0;
-                $url_recibo = 'https://egobierno.nl.gob.mx/egob/reciboGPM.php?folio=' . $idTransaccion;
+                $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
             }
         }
         actualizaTransaccion($idTransaccion, $status);
