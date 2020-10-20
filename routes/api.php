@@ -14,15 +14,20 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::group([
-	'prefix' => 'v1',
-	'middleware' => [
-		'authorization',
-		'response',
-	],
-], function () {
-	Route::get('{route:.*}', 'ApiController@index');
-	Route::post('{route:.*}', 'ApiController@index');
-	Route::put('{route:.*}', 'ApiController@index');
-	Route::options('{route:.*}', 'ApiController@index');
+Route::group(["prefix" => (getenv("APP_PREFIX") ?? "")], function(){
+	Route::get('/', function() {
+		return "THIS ROUTE DOES NOT EXISTS.";
+	});
+	Route::group([
+		'prefix' => 'v1',
+		'middleware' => [
+			'authorization',
+			'response',
+		],
+	], function () {
+		Route::get('{route:.*}', 'ApiController@index');
+		Route::post('{route:.*}', 'ApiController@index');
+		Route::put('{route:.*}', 'ApiController@index');
+		Route::options('{route:.*}', 'ApiController@index');
+	});
 });
