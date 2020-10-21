@@ -15,12 +15,14 @@ class RespuestabancoController {
         $estatus = 0; //estatus del la respuesta
         $mensaje = 'error'; //mensaje del servicio
         $url_recibo = "";
+        $banco = "ND"; //No Definido
 
-        $referencia= $ttlTr= $Autorizacion=0;
-        
+        $referencia = $ttlTr = $Autorizacion = 0;
+        $regHash = 0;
+
         //validamos las variables de los bancos
         if (isset($request->REFER_PGO)) {//variable de banamex
-            
+            $banco = "Banamex";
             $idTransaccion = (isset($request->REFER_PGO)) ? substr($request->REFER_PGO, 0, -2) : "";
             $datosRespuesta = datosTransaccion($idTransaccion);
             $status = 15; //tramite no autorizado
@@ -31,6 +33,7 @@ class RespuestabancoController {
                 $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
             }
         } else if (isset($request->mp_response)) {//variable de bancomer
+            $banco = "Bancomer";
             $status = 15; //tramite no autorizado
             $idTransaccion = (isset($request->s_transm)) ? $request->s_transm : "";
             $datosRespuesta = datosTransaccion($idTransaccion);
@@ -49,7 +52,20 @@ class RespuestabancoController {
                 $mensaje = 'correcto';
                 $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
             }
+        } else if (isset($request->indPago)) {//variable de Scotibank
+            $banco = "Scotiabank";
+            $status = 15; //tramite no autorizado
+            $idTransaccion = (isset($request->s_transm)) ? $request->s_transm : "";
+            $estatusBanco = (isset($request->indPago)) ? $request->indPago : "";
+
+            if ($estatusBanco == 1) {//Pagado
+                $estatus = 1;
+                $status = 0;
+                $mensaje = 'correcto';
+                $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
+            }
         } else if (isset($request->transaction->merchantReferenceCode)) {//variable de netpay
+            $banco = "NetPay";
             $status = 15; //tramite no autorizado
             $idTransaccion = (isset($request->transaction->merchantReferenceCode)) ? $request->transaction->merchantReferenceCode : "";
             $impbco = (isset($request->transaction->totalAmount)) ? $request->transaction->totalAmount : "";
@@ -61,6 +77,15 @@ class RespuestabancoController {
                 $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
             }
         }
+
+        $parametrosLog = array(
+            "id_transaccion" => $idTransaccion,
+            "proceso" => 'RECIBO',
+            "banco" => $banco,
+            "parametros" => json_encode($request)
+        );
+
+        agregarLogEnvio($parametrosLog);
         actualizaTransaccion($idTransaccion, $status);
         $datosRespuesta['datos']['mensaje'] = $mensaje;
         $datosRespuesta['datos']['estatus'] = $estatus;
@@ -71,6 +96,10 @@ class RespuestabancoController {
         return $datosRespuesta;
     }
 
+}
+
+function agregarLogEnvio($datosLog) {
+    DB::table('oper_log_bancos')->insert($datosLog);
 }
 
 function datosTransaccion($idTransaccion) {
