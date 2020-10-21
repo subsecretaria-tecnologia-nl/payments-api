@@ -94,6 +94,8 @@ function datosEnvioBancoLinea($dT, $banco) {
     switch ($banco) {
         case "Bancomer"://bancomer
             $url_response = "paginaBancomerLinea";
+            $variablesEnt = explode("|", getenv("BANCOMER_DATA"));
+            $KeyHash = $variablesEnt[0];
             $datosBanco = array(
                 's_transm' => $idTransaccion,
                 'c_referencia' => $referencia,
@@ -105,18 +107,19 @@ function datosEnvioBancoLinea($dT, $banco) {
                 'val_3' => "", // correo
                 'val_4' => "A",
                 'val_8' => "100", //tipopago del banco (TC)
-                'mp_signature' => hash_hmac('sha256', $dT[0]->id_transaccion_motor . $dT[0]->referencia . $dT[0]->importe_transaccion, 'Nljuk3u99D8383899XE8399NLi98I653rv8273WQ80202mUbbI28AO762i3828')
+                'mp_signature' => hash_hmac('sha256', $dT[0]->id_transaccion_motor . $dT[0]->referencia . $dT[0]->importe_transaccion, $KeyHash)
             );
             actualizaTipoPago($idTransaccion, 9); //bancomer
             break;
         case "Banamex":
             $url_response = "paginaBanamex";
+            list($EWFSYS0, $EDIFY) = explode("|", getenv("BANAMEX_DATA"));
             $totalTramite_ = number_format($totalTransaccion, 2, '.', '');
             $extrados = extradosBanamex($tipoServicioRepositorio, $idTransaccion, $totalTramite_);
             $datosBanco = array(
-                'EWF_SYS_0' => '4eebd5b1-3824-11d5-929d-0050dae9973a',
+                'EWF_SYS_0' => $EWFSYS0,
                 'EWF_FORM_NAME' => 'index',
-                'BANKID' => 'EDIFY',
+                'BANKID' => $EDIFY,
                 'PRODUCTNAME' => 'EBS',
                 'EWFBUTTON' => '',
                 'EXTRA1' => 'SPANISH',
@@ -134,7 +137,8 @@ function datosEnvioBancoLinea($dT, $banco) {
             break;
         case "Scotiabank":
             $url_response = "paginaScotiabank";
-            $xhdnContrato = "422";
+            $variablesEnt = explode("|", getenv("SCOTIABANK_DATA"));
+            $xhdnContrato = $variablesEnt[0];
             $transm = str_pad($idTransaccion, 20, "0", STR_PAD_LEFT);
             $referencia = str_pad($idTransaccion, 9, "0", STR_PAD_LEFT) . str_pad($dT[0]->id_tipo_servicio, 3, "0", STR_PAD_LEFT) . date('Ymd');
             $servicio = str_pad($dT[0]->id_tipo_servicio, 3, "0", STR_PAD_LEFT);
@@ -188,6 +192,8 @@ function datosEnvioBancoTC($dT, $banco) {
     );
     switch ($banco) {
         case "Bancomer"://bancomer
+            $variablesEnt = explode("|", getenv("BANCOMER_DATA"));
+            $KeyHash = $variablesEnt[0];
             $url_response = "paginaBancomer";
             $datosBanco = array(
                 's_transm' => $idTransaccion,
@@ -200,7 +206,7 @@ function datosEnvioBancoTC($dT, $banco) {
                 'val_3' => "", // correo
                 'val_4' => "A",
                 'val_8' => "010", //tipopago del banco (TC)
-                'mp_signature' => hash_hmac('sha256', $dT[0]->id_transaccion_motor . $dT[0]->referencia . $dT[0]->importe_transaccion, 'Nljuk3u99D8383899XE8399NLi98I653rv8273WQ80202mUbbI28AO762i3828')
+                'mp_signature' => hash_hmac('sha256', $dT[0]->id_transaccion_motor . $dT[0]->referencia . $dT[0]->importe_transaccion, $KeyHash)
             );
             $parametrosLog = array(
                 "id_transaccion" => $idTransaccion,
@@ -213,7 +219,8 @@ function datosEnvioBancoTC($dT, $banco) {
             break;
         case "NetPay"://netpay
             $url_response = "paginaNetPay";
-            define('URLNPC', 'https://ecommerce.netpay.com.mx/gateway-ecommerce/v2.1.0/checkout');    ### SANDBOX
+            $variablesEnt = explode("|", getenv("NETPAY_DATA"));
+            $URLNPC = $variablesEnt[3];
             $postid = $idTransaccion;
             $storeIdAcq = '529952';        ### SANDBOX
             $postttl = $totalTransaccion;
@@ -282,7 +289,7 @@ function datosEnvioBancoTC($dT, $banco) {
             agregarLogEnvio($parametrosLog);
 
             $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, URLNPC);
+            curl_setopt($ch, CURLOPT_URL, $URLNPC);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
             curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', $authorization));
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -462,21 +469,15 @@ function extradosBanamex($ts, $folio, $importe) {
 }
 
 function getLoginToken() {
-    $return = "";
-    define('USR', 'andrea.gonzalez@nuevoleon.gob.mx');
-// define('USR','vero.ramos@nuevoleon.gob.mx');
-    define('PSS', 'g0bNL54');
-// define('PSS','793122');
-    define('URLNPL', 'https://ecommerce.netpay.com.mx/gateway-ecommerce/v1/auth/login');      ### SANDBOX
-// define('URLNPL','https://suite.netpay.com.mx/gateway-ecommerce/v1/auth/login');     ### PRODUCTION
-##### SE OBTIENE EL TOKEN TRANSACCIONAL O SE GENERA UNO NUEVO ######
 
+    list($URLNPL, $USR, $PSS) = explode("|", getenv("NETPAY_DATA"));
+    $return = "";
     try {
 
-        $data_string = json_encode(array("security" => array("userName" => USR, "password" => PSS)));
+        $data_string = json_encode(array("security" => array("userName" => $USR, "password" => $PSS)));
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, URLNPL);
+        curl_setopt($ch, CURLOPT_URL, $URLNPL);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
