@@ -220,9 +220,9 @@ function datosEnvioBancoTC($dT, $banco) {
         case "NetPay"://netpay
             $url_response = "paginaNetPay";
             $variablesEnt = explode("|", getenv("NETPAY_DATA"));
-            $URLNPC = $variablesEnt[3];
+            $URLNPC = $variablesEnt[0] . "/v2.1.0/checkout";
             $postid = $idTransaccion;
-            $storeIdAcq = $variablesEnt[4];        ### SANDBOX
+            $storeIdAcq = $variablesEnt[3];        ### SANDBOX
             $postttl = $totalTransaccion;
 
 ######## PREAPARCION DE JSON PARA CHECKOUT Y PAGO ##########################
@@ -470,7 +470,11 @@ function extradosBanamex($ts, $folio, $importe) {
 
 function getLoginToken() {
 
-    list($URLNPL, $USR, $PSS) = explode("|", getenv("NETPAY_DATA"));
+    $variablesEnt = explode("|", getenv("NETPAY_DATA"));
+    $URLNPL = $variablesEnt[0] . "/v1/auth/login";
+    $USR = $variablesEnt[1];
+    $PSS = $variablesEnt[2];
+
     $return = "";
     try {
 
