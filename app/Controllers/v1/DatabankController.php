@@ -222,7 +222,7 @@ function datosEnvioBancoTC($dT, $banco) {
             $variablesEnt = explode("|", getenv("NETPAY_DATA"));
             $URLNPC = $variablesEnt[3];
             $postid = $idTransaccion;
-            $storeIdAcq = '529952';        ### SANDBOX
+            $storeIdAcq = $variablesEnt[4];        ### SANDBOX
             $postttl = $totalTransaccion;
 
 ######## PREAPARCION DE JSON PARA CHECKOUT Y PAGO ##########################
