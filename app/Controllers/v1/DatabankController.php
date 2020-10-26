@@ -30,8 +30,6 @@ class DatabankController {
                         'T.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'Tr.importe_tramite')
                 ->where('T.id_transaccion_motor', '=', $folio)
                 ->get();
-        $datosCuenta[0]->metodopago_id = 1;
-        $datosCuenta[0]->nombre_banco = 'NetPay';
         switch ($datosCuenta[0]->metodopago_id) {
             case "1"://Tarjeta de credito
                 $datos = datosEnvioBancoTC($datosTransaccion, $datosCuenta[0]->nombre_banco);
