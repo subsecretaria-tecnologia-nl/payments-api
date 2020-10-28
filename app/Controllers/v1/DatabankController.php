@@ -25,8 +25,8 @@ class DatabankController {
         $datosTransaccion = DB::table('oper_transacciones as T')
                 ->leftJoin('oper_tramites as Tr', 'T.id_transaccion_motor', '=', 'Tr.id_transaccion_motor')
                 ->select('T.id_transaccion_motor', 'T.referencia', 'T.importe_transaccion', 'Tr.nombre', 'Tr.apellido_paterno', 'Tr.apellido_materno',
-                        'Tr.razon_social', 'Tr.id_tipo_servicio', \DB::raw('JSON_EXTRACT(CONVERT(T.json,CHAR), "$.url_retorno") url_retorno'),
-                        \DB::raw('JSON_EXTRACT(CONVERT(T.json,CHAR),"$.url_confirma_pago") url_confirmapago'),
+                        'Tr.razon_social', 'Tr.id_tipo_servicio', \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(T.json,CHAR), "$.url_retorno")) url_retorno'),
+                        \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(T.json,CHAR),"$.url_confirma_pago")) url_confirmapago'),
                         'T.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'Tr.importe_tramite')
                 ->where('T.id_transaccion_motor', '=', $folio)
                 ->get();
@@ -381,8 +381,9 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
         ],
         'tramites' => $arrTramites
     );
+
     if ($urlConfirmaPago != '') {
-        consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno);
+       consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno);
     }
 
     actualizaEstatusTransaccion($idTransaccion, $estatus);
@@ -396,7 +397,24 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
 }
 
 function consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno) {
-//pendiente
+    $execx = "ND";
+    try {
+        $chx = curl_init($urlConfirmaPago);
+        $curl_optionsx = array(
+            CURLOPT_POST => true,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POSTFIELDS => array(
+                'json' => json_encode($json_retorno)
+            )
+        );
+        curl_setopt_array($chx, $curl_optionsx);
+        $execx = curl_exec($chx);
+        curl_close($chx);
+    } catch (\Exception $e) {
+        $execx = $e;
+    }
 }
 
 function actualizaTipoPago($idTransaccion, $tipoPago) {
