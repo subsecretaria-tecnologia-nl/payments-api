@@ -30,6 +30,7 @@ class DatabankController {
                         'T.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'Tr.importe_tramite')
                 ->where('T.id_transaccion_motor', '=', $folio)
                 ->get();
+
         switch ($datosCuenta[0]->metodopago_id) {
             case "1"://Tarjeta de credito
                 $datos = datosEnvioBancoTC($datosTransaccion, $datosCuenta[0]->nombre_banco);
@@ -374,6 +375,10 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
         'estatus' => "2",
         'referencia' => $referencia,
         'url_recibo' => $urlFormatoPago . $idTransaccion,
+        'recibo' => [
+            'url' => $urlFormatoPago . $idTransaccion,
+            'pdf' => null
+        ],
         'tramites' => $arrTramites
     );
     if ($urlConfirmaPago != '') {

@@ -23,7 +23,7 @@ class ApiController extends Controller {
         $fullPath = $request->getPathInfo();
         $fullPathNoVersion = preg_replace("/\/v([0-9]+)/", "", $fullPath);
         $path = explode("/", substr($fullPath, 1));
-        $version = $path[0];
+        $version = $path[0] == getenv("APP_PREFIX") ? $path[1] : $path[0];
         $method = strtolower($request->getMethod());
         $action = null;
         $actionRaw = "index";
@@ -32,6 +32,10 @@ class ApiController extends Controller {
         $controllerFound = false;
         $controllerName = "";
         $uriParams = [];
+
+        $path = array_filter($path, function($a){
+            if($a != getenv("APP_PREFIX")) return $a;
+        });
 
         foreach ($path as $key => $val) {
             if (preg_match("/^v([0-9]{1,1})$/i", $val) == false) {

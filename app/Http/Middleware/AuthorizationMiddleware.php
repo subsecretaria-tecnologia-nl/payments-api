@@ -35,9 +35,6 @@ class AuthorizationMiddleware
     * @return mixed
     */
 
-    // Authorization: Bearer lsjfhlfhaljfahfljahflasj
-    // DB table : access => history
-
     public function handle($request, Closure $next, $guard = null)
     {
         $authorized = false;
