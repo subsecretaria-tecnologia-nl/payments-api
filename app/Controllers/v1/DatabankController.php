@@ -383,7 +383,7 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
     );
 
     if ($urlConfirmaPago != '') {
-       $cu= consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno);
+       consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno);
     }
 
     actualizaEstatusTransaccion($idTransaccion, $estatus);
