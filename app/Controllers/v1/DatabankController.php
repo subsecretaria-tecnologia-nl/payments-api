@@ -5,6 +5,7 @@ namespace App\Controllers\v1;
 use DB;
 use App\Exceptions\ShowableException;
 use App\Utils\Utils;
+use App\Controllers\v1\PayController;
 
 class DatabankController {
 
@@ -14,6 +15,7 @@ class DatabankController {
 //            echo "<pre> {$query->sql } </pre>";
 //        });
         extract(get_object_vars($request));
+
 //obtenemos el metodo y el banco segun la cuenta que seleccionan
         $datosCuenta = DB::table('oper_cuentasbanco as CB')
                 ->join('oper_banco as OB', 'OB.id', '=', 'CB.banco_id')
@@ -48,9 +50,64 @@ class DatabankController {
                 $datos = datosEnvioBancoLinea($datosTransaccion, $datosCuenta[0]->nombre_banco);
                 break;
 
-            default:
-                $datos = "ND";
+
+        $b = new PayController();
+        $cuentasPermitidas = $b->get_index($folio);
+
+        $datos = array(
+            "error" => 1,
+            "url_response" => "",
+            "datos" => ""
+        );
+
+        $cuentaValida = 0;
+        foreach ($cuentasPermitidas as $valor) {
+            if ($valor['cuenta'] == $cuenta_id) {
+                $cuentaValida = 1;
                 break;
+            }
+        }
+        if ($cuentaValida == 1) {
+            //obtenemos el metodo y el banco segun la cuenta que seleccionan
+            $datosCuenta = DB::table('oper_cuentasbanco as CB')
+                    ->join('oper_banco as OB', 'OB.id', '=', 'CB.banco_id')
+                    ->where('CB.id', '=', $cuenta_id)
+                    ->select('CB.metodopago_id', 'CB.banco_id', 'OB.nombre AS nombre_banco')
+                    ->get();
+
+            //obtenemos los datos de la transaccion
+            $datosTransaccion = DB::table('oper_transacciones as T')
+                    ->leftJoin('oper_tramites as Tr', 'T.id_transaccion_motor', '=', 'Tr.id_transaccion_motor')
+                    ->select('T.id_transaccion_motor', 'T.referencia', 'T.importe_transaccion', 'Tr.nombre', 'Tr.apellido_paterno', 'Tr.apellido_materno',
+                            'Tr.razon_social', 'Tr.id_tipo_servicio', \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(T.json,CHAR), "$.url_retorno")) url_retorno'),
+                            \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(T.json,CHAR),"$.url_confirma_pago")) url_confirmapago'),
+                            'T.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'Tr.importe_tramite')
+                    ->where('T.id_transaccion_motor', '=', $folio)
+                    ->get();
+
+            switch ($datosCuenta[0]->metodopago_id) {
+                case "1"://Tarjeta de credito
+                    $datos = datosEnvioBancoTC($datosTransaccion, $datosCuenta[0]->nombre_banco);
+                    break;
+                case "2"://spei
+                    //actualizamos la referencia en la transaccion
+                    $datos = datosEnvioReferencia($datosTransaccion, 2);
+                    break;
+                case "3"://ventanilla
+                    //actualizamos la referencia en la transaccion
+                    $datos = datosEnvioReferencia($datosTransaccion, 3);
+                    break;
+                case "4"://bancos en linea
+                    //actualizamos la referencia en la transaccion
+                    $datos = datosEnvioBancoLinea($datosTransaccion, $datosCuenta[0]->nombre_banco);
+                    break;
+
+                default:
+                    $datos ['error'] = 3;
+                    break;
+            }
+        } else {
+            $datos ['error'] = 2;
         }
         return $datos;
     }
@@ -79,6 +136,7 @@ function tipoServicioBanco($tipoServicioRepositorio, $banco) {
 }
 
 function datosEnvioBancoLinea($dT, $banco) {
+    $error = 0;
     $primerRegistro = $dT[0];
     $tipoServicioRepositorio = $primerRegistro->id_tipo_servicio;
     $tipoServicioBanco = tipoServicioBanco($tipoServicioRepositorio, $banco);
@@ -153,13 +211,13 @@ function datosEnvioBancoLinea($dT, $banco) {
             actualizaTipoPago($idTransaccion, 10); //scotiabank
             break;
         default:
-            $url_response = "paginaError";
-            $datosBanco = array(
-                "dato" => "1"
-            );
+            $error = 5;
+            $url_response = "";
+            $datosBanco = "";
             break;
     }
     $datosEnvio = array(
+        "error" => $error,
         "url_response" => $url_response,
         "datos" => $datosBanco
     );
@@ -179,6 +237,7 @@ function agregarLogEnvio($datosLog) {
 }
 
 function datosEnvioBancoTC($dT, $banco) {
+    $error = 0;
     $primerRegistro = $dT[0];
     $tipoServicioRepositorio = $primerRegistro->id_tipo_servicio;
     $tipoServicioBanco = tipoServicioBanco($tipoServicioRepositorio, $banco);
@@ -295,7 +354,7 @@ function datosEnvioBancoTC($dT, $banco) {
 
             $response = curl_exec($ch);
             $decode = json_decode($response);
-            $error = curl_errno($ch);
+            $errorCurl = curl_errno($ch);
             $info = curl_getinfo($ch);
             curl_close($ch);
 
@@ -318,13 +377,13 @@ function datosEnvioBancoTC($dT, $banco) {
             actualizaTipoPago($idTransaccion, 26); //netpay
             break;
         default:
-            $url_response = "paginaError";
-            $datosBanco = array(
-                "dato" => "1"
-            );
+            $error = 4;
+            $url_response = "";
+            $datosBanco = "";
             break;
     }
     $datosEnvio = array(
+        "error" => $error,
         "url_response" => $url_response,
         "datos" => $datosBanco
     );
@@ -389,6 +448,7 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
     actualizaEstatusTransaccion($idTransaccion, $estatus);
 
     $datosEnvio = array(
+        "error" => 0,
         "url_response" => $urlRetorno,
         "datos" => $json_retorno
     );
@@ -511,7 +571,7 @@ function getLoginToken() {
 
 
         $decode = json_decode($response);
-        $error = curl_errno($ch);
+        $errorCurl = curl_errno($ch);
         $info = curl_getinfo($ch);
         curl_close($ch);
 
