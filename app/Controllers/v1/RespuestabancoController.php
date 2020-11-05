@@ -64,13 +64,34 @@ class RespuestabancoController {
                 $mensaje = 'correcto';
                 $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
             }
-        } else if (isset($request->transaction->merchantReferenceCode)) {//variable de netpay
+        } else if (isset($request->transactionToken)) {//variable de netpay
             $banco = "NetPay";
             $status = 15; //tramite no autorizado
-            $idTransaccion = (isset($request->transaction->merchantReferenceCode)) ? $request->transaction->merchantReferenceCode : "";
-            $impbco = (isset($request->transaction->totalAmount)) ? $request->transaction->totalAmount : "";
-            $response = (isset($request->response->responseCode)) ? $request->response->responseCode : "";
-            $mensaje = (isset($request->response->responseMsg)) ? $request->response->responseMsg : $mensaje;
+
+            $variablesEnt = explode("|", getenv("NETPAY_DATA"));
+            $url = $variablesEnt[0] . "/v1/transaction-report/transaction/";
+
+            $lgk = getLoginToken();
+            $authorization = "Authorization: Bearer " . $lgk;
+
+
+            $trtkn = $request->transactionToken;
+            $ch = curl_init();
+            $request = $url . $trtkn;
+            curl_setopt($ch, CURLOPT_URL, $request);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', $authorization));
+
+            $response = curl_exec($ch);
+            $decode = json_decode($response);
+            $error = curl_errno($ch);
+            $info = curl_getinfo($ch);
+            curl_close($ch);
+dd($response);
+            $idTransaccion = (isset($decode->transaction->merchantReferenceCode)) ? $decode->transaction->merchantReferenceCode : "";
+            $impbco = (isset($decode->transaction->totalAmount)) ? $decode->transaction->totalAmount : "";
+            $response = (isset($decode->response->responseCode)) ? $decode->response->responseCode : "";
+            $mensaje = (isset($decode->response->responseMsg)) ? $decode->response->responseMsg : "No recibido";
             if ($response == "00") {
                 $estatus = 1;
                 $status = 0;
@@ -140,4 +161,41 @@ function actualizaTransaccion($idTransaccion, $estatus) {
     DB::table('oper_transacciones')
             ->where('id_transaccion_motor', $idTransaccion)
             ->update(['estatus' => $estatus]);
+}
+
+function getLoginToken() {
+
+    $variablesEnt = explode("|", getenv("NETPAY_DATA"));
+    $URLNPL = $variablesEnt[0] . "/v1/auth/login";
+    $USR = $variablesEnt[1];
+    $PSS = $variablesEnt[2];
+
+    $return = "";
+    try {
+
+        $data_string = json_encode(array("security" => array("userName" => $USR, "password" => $PSS)));
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $URLNPL);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+        $response = curl_exec($ch);
+
+
+        $decode = json_decode($response);
+        $errorCurl = curl_errno($ch);
+        $info = curl_getinfo($ch);
+        curl_close($ch);
+
+        $return = $decode->token;
+    } catch (\Exception $e) {
+
+// $_SESSION["MensajeError"] = "No es posible procesar la informacion por este medio de pago -- Err #200 -- CHKOUT.";
+// header("Location:../ErrorNP.php");
+// exit;
+//        $return = "";
+    }
+    return $return;
 }
