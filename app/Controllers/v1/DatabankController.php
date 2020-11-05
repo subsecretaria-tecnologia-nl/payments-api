@@ -279,6 +279,8 @@ function datosEnvioBancoTC($dT, $banco) {
             $url_response = "paginaNetPay";
             $variablesEnt = explode("|", getenv("NETPAY_DATA"));
             $URLNPC = $variablesEnt[0] . "/v2.1.0/checkout";
+            $variablesEnt2 = explode("|", getenv("URLRESPONSE_NETPAY"));
+            $URLResponseBanco = $variablesEnt2[0];
             $postid = $idTransaccion;
             $storeIdAcq = $variablesEnt[3];        ### SANDBOX
             $postttl = $totalTransaccion;
@@ -359,7 +361,7 @@ function datosEnvioBancoTC($dT, $banco) {
             curl_close($ch);
 
             if ($info['http_code'] == 200) {
-                $newurl = urlencode(base64_encode('https://egobierno.nl.gob.mx/egob/netpay/np_answer_.php'));
+                $newurl = urlencode(base64_encode($URLResponseBanco));
                 $url_response = $decode->response->webAuthorizerUrl
                         . '?checkoutTokenId=' . $decode->response->checkoutTokenId
                         . '&checkoutDetail=true&MerchantResponseURL=' . $newurl;
