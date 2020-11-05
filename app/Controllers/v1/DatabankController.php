@@ -15,42 +15,6 @@ class DatabankController {
 //            echo "<pre> {$query->sql } </pre>";
 //        });
         extract(get_object_vars($request));
-
-//obtenemos el metodo y el banco segun la cuenta que seleccionan
-        $datosCuenta = DB::table('oper_cuentasbanco as CB')
-                ->join('oper_banco as OB', 'OB.id', '=', 'CB.banco_id')
-                ->where('CB.id', '=', $cuenta_id)
-                ->select('CB.metodopago_id', 'CB.banco_id', 'OB.nombre AS nombre_banco')
-                ->get();
-
-//obtenemos los datos de la transaccion
-        $datosTransaccion = DB::table('oper_transacciones as T')
-                ->leftJoin('oper_tramites as Tr', 'T.id_transaccion_motor', '=', 'Tr.id_transaccion_motor')
-                ->select('T.id_transaccion_motor', 'T.referencia', 'T.importe_transaccion', 'Tr.nombre', 'Tr.apellido_paterno', 'Tr.apellido_materno',
-                        'Tr.razon_social', 'Tr.id_tipo_servicio', \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(T.json,CHAR), "$.url_retorno")) url_retorno'),
-                        \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(T.json,CHAR),"$.url_confirma_pago")) url_confirmapago'),
-                        'T.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'Tr.importe_tramite')
-                ->where('T.id_transaccion_motor', '=', $folio)
-                ->get();
-
-        switch ($datosCuenta[0]->metodopago_id) {
-            case "1"://Tarjeta de credito
-                $datos = datosEnvioBancoTC($datosTransaccion, $datosCuenta[0]->nombre_banco);
-                break;
-            case "2"://spei
-//actualizamos la referencia en la transaccion
-                $datos = datosEnvioReferencia($datosTransaccion, 2);
-                break;
-            case "3"://ventanilla
-//actualizamos la referencia en la transaccion
-                $datos = datosEnvioReferencia($datosTransaccion, 3);
-                break;
-            case "4"://bancos en linea
-//actualizamos la referencia en la transaccion
-                $datos = datosEnvioBancoLinea($datosTransaccion, $datosCuenta[0]->nombre_banco);
-                break;
-
-
         $b = new PayController();
         $cuentasPermitidas = $b->get_index($folio);
 
@@ -68,6 +32,42 @@ class DatabankController {
             }
         }
         if ($cuentaValida == 1) {
+            //obtenemos el metodo y el banco segun la cuenta que seleccionan
+            $datosCuenta = DB::table('oper_cuentasbanco as CB')
+                    ->join('oper_banco as OB', 'OB.id', '=', 'CB.banco_id')
+                    ->where('CB.id', '=', $cuenta_id)
+                    ->select('CB.metodopago_id', 'CB.banco_id', 'OB.nombre AS nombre_banco')
+                    ->get();
+
+            //obtenemos los datos de la transaccion
+            $datosTransaccion = DB::table('oper_transacciones as T')
+                    ->leftJoin('oper_tramites as Tr', 'T.id_transaccion_motor', '=', 'Tr.id_transaccion_motor')
+                    ->select('T.id_transaccion_motor', 'T.referencia', 'T.importe_transaccion', 'Tr.nombre', 'Tr.apellido_paterno', 'Tr.apellido_materno',
+                            'Tr.razon_social', 'Tr.id_tipo_servicio', \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(T.json,CHAR), "$.url_retorno")) url_retorno'),
+                            \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(T.json,CHAR),"$.url_confirma_pago")) url_confirmapago'),
+                            'T.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'Tr.importe_tramite')
+                    ->where('T.id_transaccion_motor', '=', $folio)
+                    ->get();
+
+            switch ($datosCuenta[0]->metodopago_id) {
+                case "1"://Tarjeta de credito
+                    $datos = datosEnvioBancoTC($datosTransaccion, $datosCuenta[0]->nombre_banco);
+                    break;
+                case "2"://spei
+//actualizamos la referencia en la transaccion
+                    $datos = datosEnvioReferencia($datosTransaccion, 2);
+                    break;
+                case "3"://ventanilla
+                    //actualizamos la referencia en la transaccion
+                    $datos = datosEnvioReferencia($datosTransaccion, 3);
+                    break;
+                case "4"://bancos en linea
+                    //actualizamos la referencia en la transaccion
+                    $datos = datosEnvioBancoLinea($datosTransaccion, $datosCuenta[0]->nombre_banco);
+                    break;
+            }
+
+
             //obtenemos el metodo y el banco segun la cuenta que seleccionan
             $datosCuenta = DB::table('oper_cuentasbanco as CB')
                     ->join('oper_banco as OB', 'OB.id', '=', 'CB.banco_id')
@@ -442,7 +442,7 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
     );
 
     if ($urlConfirmaPago != '') {
-       consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno);
+        consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno);
     }
 
     actualizaEstatusTransaccion($idTransaccion, $estatus);
