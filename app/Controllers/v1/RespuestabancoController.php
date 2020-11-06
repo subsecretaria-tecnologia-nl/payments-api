@@ -87,8 +87,9 @@ class RespuestabancoController {
             $error = curl_errno($ch);
             $info = curl_getinfo($ch);
             curl_close($ch);
-dd($response);
+
             $idTransaccion = (isset($decode->transaction->merchantReferenceCode)) ? $decode->transaction->merchantReferenceCode : "";
+            $datosRespuesta = datosTransaccion($idTransaccion);
             $impbco = (isset($decode->transaction->totalAmount)) ? $decode->transaction->totalAmount : "";
             $response = (isset($decode->response->responseCode)) ? $decode->response->responseCode : "";
             $mensaje = (isset($decode->response->responseMsg)) ? $decode->response->responseMsg : "No recibido";
@@ -129,7 +130,7 @@ function datosTransaccion($idTransaccion) {
             ->leftJoin('oper_tramites as Tr', 'OT.id_transaccion_motor', '=', 'Tr.id_transaccion_motor')
             ->select('OT.id_transaccion_motor', 'OT.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'OT.referencia', 'Tr.importe_tramite',
                     'OT.importe_transaccion',
-                    \DB::raw('JSON_EXTRACT(CONVERT(OT.json,CHAR), "$.url_retorno") url_retorno'))
+                    \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(OT.json,CHAR), "$.url_retorno")) url_retorno'))
             ->get();
     foreach ($datosTransaccion as $valor) {
         $idTransaccion = $valor->id_transaccion_motor;
