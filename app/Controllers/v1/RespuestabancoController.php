@@ -87,6 +87,7 @@ class RespuestabancoController {
             $error = curl_errno($ch);
             $info = curl_getinfo($ch);
             curl_close($ch);
+
             $idTransaccion = (isset($decode->transaction->merchantReferenceCode)) ? $decode->transaction->merchantReferenceCode : "";
             $datosRespuesta = datosTransaccion($idTransaccion);
             $impbco = (isset($decode->transaction->totalAmount)) ? $decode->transaction->totalAmount : "";
