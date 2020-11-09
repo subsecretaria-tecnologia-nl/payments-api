@@ -150,8 +150,8 @@ function datosEnvioBancoLinea($dT, $banco) {
     );
     switch ($banco) {
         case "Bancomer"://bancomer
-            $url_response = "paginaBancomerLinea";
             $variablesEnt = explode("|", getenv("BANCOMER_DATA"));
+            $url_response = $variablesEnt[1];//url pruebas
             $KeyHash = $variablesEnt[0];
             $datosBanco = array(
                 's_transm' => $idTransaccion,
@@ -252,7 +252,7 @@ function datosEnvioBancoTC($dT, $banco) {
         case "Bancomer"://bancomer
             $variablesEnt = explode("|", getenv("BANCOMER_DATA"));
             $KeyHash = $variablesEnt[0];
-            $url_response = "paginaBancomer";
+            $url_response = $variablesEnt[1];//url pruebas
             $datosBanco = array(
                 's_transm' => $idTransaccion,
                 'c_referencia' => $referencia,
