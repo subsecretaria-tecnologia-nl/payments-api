@@ -151,7 +151,7 @@ function datosEnvioBancoLinea($dT, $banco) {
     switch ($banco) {
         case "Bancomer"://bancomer
             $variablesEnt = explode("|", getenv("BANCOMER_DATA"));
-            $url_response = $variablesEnt[1];//url pruebas
+            $url_response = $variablesEnt[1]; //url pruebas
             $KeyHash = $variablesEnt[0];
             $datosBanco = array(
                 's_transm' => $idTransaccion,
@@ -166,7 +166,7 @@ function datosEnvioBancoLinea($dT, $banco) {
                 'val_8' => "100", //tipopago del banco (TC)
                 'mp_signature' => hash_hmac('sha256', $dT[0]->id_transaccion_motor . $dT[0]->referencia . $dT[0]->importe_transaccion, $KeyHash)
             );
-            actualizaTipoPago($idTransaccion, 9); //bancomer
+            actualizaTipoPago($idTransaccion, 9, 4); //bancomer
             break;
         case "Banamex":
             $url_response = "paginaBanamex";
@@ -190,7 +190,7 @@ function datosEnvioBancoLinea($dT, $banco) {
                 'imp' => $totalTramite_
             );
 
-            actualizaTipoPago($idTransaccion, 3); //banamex
+            actualizaTipoPago($idTransaccion, 3, 4); //banamex
             break;
         case "Scotiabank":
             $url_response = "paginaScotiabank";
@@ -208,7 +208,7 @@ function datosEnvioBancoLinea($dT, $banco) {
                 't_importe' => $totalTransaccion,
                 'val_1' => '0'
             );
-            actualizaTipoPago($idTransaccion, 10); //scotiabank
+            actualizaTipoPago($idTransaccion, 10, 4); //scotiabank
             break;
         default:
             $error = 5;
@@ -252,7 +252,7 @@ function datosEnvioBancoTC($dT, $banco) {
         case "Bancomer"://bancomer
             $variablesEnt = explode("|", getenv("BANCOMER_DATA"));
             $KeyHash = $variablesEnt[0];
-            $url_response = $variablesEnt[1];//url pruebas
+            $url_response = $variablesEnt[1]; //url pruebas
             $datosBanco = array(
                 's_transm' => $idTransaccion,
                 'c_referencia' => $referencia,
@@ -273,7 +273,7 @@ function datosEnvioBancoTC($dT, $banco) {
                 "parametros" => json_encode($datosBanco)
             );
             agregarLogEnvio($parametrosLog);
-            actualizaTipoPago($idTransaccion, 8); //bancomer TC
+            actualizaTipoPago($idTransaccion, 8, 1); //bancomer TC, tarjeta credito
             break;
         case "NetPay"://netpay
             $url_response = "paginaNetPay";
@@ -376,7 +376,7 @@ function datosEnvioBancoTC($dT, $banco) {
                 "parametros" => json_encode($datosBanco)
             );
             agregarLogEnvio($parametrosLog);
-            actualizaTipoPago($idTransaccion, 26); //netpay
+            actualizaTipoPago($idTransaccion, 26, 1); //netpay
             break;
         default:
             $error = 4;
@@ -479,10 +479,13 @@ function consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno) {
     }
 }
 
-function actualizaTipoPago($idTransaccion, $tipoPago) {
+function actualizaTipoPago($idTransaccion, $tipoPago, $metodoPago) {
     DB::table('oper_transacciones')
             ->where('id_transaccion_motor', $idTransaccion)
-            ->update(['tipo_pago' => $tipoPago]);
+            ->update(
+                    ['metodo_pago_id' => $metodoPago],
+                    ['tipo_pago' => $tipoPago]
+    );
 }
 
 function actualizaEstatusTransaccion($idTransaccion, $estatus) {

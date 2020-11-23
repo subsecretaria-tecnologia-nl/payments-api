@@ -90,8 +90,15 @@ class PayController {
     }
 
     public static function post_index($request) {
-
+//        DB::listen(function($query) {
+//            //Imprimimos la consulta ejecutada
+//            echo "<pre> {$query->sql } </pre>";
+//        });
         extract(get_object_vars($request));
+
+        if (validaTransaccionDuplicada($entidad, $id_transaccion)) {
+            throw new ShowableException(422, "La transaccion ya existe en la entidad");
+        }
         $arrTipoServicioQuery = $arrTipoServicioRequest = array();
         $sumaTramites = 0; //para sumar el importe de los tramites
         $montoMaximoTramite = 0;
@@ -159,6 +166,7 @@ class PayController {
         $conteo = $tramiteIndex = $tramiteAnterior = $tipoTramiteGeneral = 0;
         $tramiteSinCuenta = 0;
         $tramitesDescripcion = array();
+//        dd($tramitesEntidad);
         foreach ($tramitesEntidad as $valor) {
             $tramitesDescripcion[$valor->tipo_servicios_id] = $valor->Tipo_Descripcion;
             if ($valor->tramite_id == 0) {
@@ -192,14 +200,16 @@ class PayController {
 
         $arrTipoServicioQueryUnico = array_unique($arrTipoServicioQuery);
 
+        if (count($arrTipoServicioQueryUnico) != count($arrTipoServicioRequestUnico))
+            throw new ShowableException(422, "Tramite no permitido para la entidad");
+
         if ($tramiteSinCuenta == 1)
             throw new ShowableException(422, "El Tramite no contiene cuenta(s) asosiada(s)");
 
         if (count($arrCuentasFinal) == 0)
             throw new ShowableException(422, "Los Tramites no comparten cuentas");
 
-        if (count($arrTipoServicioQueryUnico) != count($arrTipoServicioRequestUnico))
-            throw new ShowableException(422, "Tramite no permitido para la entidad");
+
 
         if ($sumaTramites != $importe_transaccion)
             throw new ShowableException(422, "La suma de los tramites no es igual al importe de la transaccion");
@@ -317,7 +327,7 @@ class PayController {
                             ->update(['importe_descuento' => $sumaDescuento]);
                 }
             }
-            $tramitesLista[] = array( 
+            $tramitesLista[] = array(
                 "descripcion" => $tramitesDescripcion[$key->id_tipo_servicio],
                 "importe" => "$" . $key->importe_tramite,
                 "detalle" => $detalleLista
@@ -332,6 +342,21 @@ class PayController {
         return $arrRespuesta;
     }
 
+}
+
+function validaTransaccionDuplicada($entidad, $idTransaccion) {
+    $existe = false;
+
+    $datosLimite = DB::table('oper_transacciones')
+                    ->where('entidad', $entidad)
+                    ->where('id_transaccion', $idTransaccion)
+                    ->get()->toArray();
+
+    if ($datosLimite) {
+        $existe = true;
+    }
+
+    return $existe;
 }
 
 function calcularFechaLimiteReferencia($tipoServicio) {
