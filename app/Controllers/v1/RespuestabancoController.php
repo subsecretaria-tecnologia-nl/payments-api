@@ -33,6 +33,8 @@ class RespuestabancoController {
                 $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
             }
         } else if (isset($request->mp_response)) {//variable de bancomer
+            $variablesEnt = explode("|", getenv("BANCOMER_DATA"));
+            $KeyHash = $variablesEnt[0];
             $banco = "Bancomer";
             $status = 15; //tramite no autorizado
             $idTransaccion = (isset($request->s_transm)) ? $request->s_transm : "";
@@ -43,7 +45,7 @@ class RespuestabancoController {
             $referencia = (isset($datosRespuesta['datos']['referencia'])) ? $datosRespuesta['datos']['referencia'] : "";
             $Autorizacion = (isset($request->n_autoriz)) ? $request->n_autoriz : "";
             $ttlTr = number_format($impbco, 2, ".", "");
-            $regHash = hash_hmac("sha256", $idTransaccion . $referencia . $ttlTr . $Autorizacion, "Nljuk3u99D8383899XE8399NLi98I653rv8273WQ80202mUbbI28AO762i3828");
+            $regHash = hash_hmac("sha256", $idTransaccion . $referencia . $ttlTr . $Autorizacion, $KeyHash);
 
             if ($mp_response == "00" && (md5($hash) === md5($regHash))
             ) {//pagado
