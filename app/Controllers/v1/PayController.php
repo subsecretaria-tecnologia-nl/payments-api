@@ -167,6 +167,7 @@ class PayController {
         $conteo = $tramiteIndex = $tramiteAnterior = $tipoTramiteGeneral = 0;
         $tramiteSinCuenta = 0;
         $tramitesDescripcion = array();
+//        dd($tramitesEntidad);
         foreach ($tramitesEntidad as $valor) {
             $tramitesDescripcion[$valor->tipo_servicios_id] = $valor->Tipo_Descripcion;
             if ($valor->tramite_id == 0) {
