@@ -28,17 +28,13 @@ class DatabankController {
         foreach ($cuentasPermitidas as $valor) {
             if ($valor['cuenta'] == $cuenta_id) {
                 $cuentaValida = 1;
+                $nombreBanco = $valor['nombre_banco'];
+                $metodoPago = $valor['metodo_pago'];
                 break;
             }
         }
+
         if ($cuentaValida == 1) {
-            //obtenemos el metodo y el banco segun la cuenta que seleccionan
-            $datosCuenta = DB::table('oper_cuentasbanco as CB')
-                    ->join('oper_banco as OB', 'OB.id', '=', 'CB.banco_id')
-                    ->where('CB.id', '=', $cuenta_id)
-                    ->select('CB.metodopago_id', 'CB.banco_id', 'OB.nombre AS nombre_banco')
-                    ->get();
-
             //obtenemos los datos de la transaccion
             $datosTransaccion = DB::table('oper_transacciones as T')
                     ->leftJoin('oper_tramites as Tr', 'T.id_transaccion_motor', '=', 'Tr.id_transaccion_motor')
@@ -49,45 +45,9 @@ class DatabankController {
                     ->where('T.id_transaccion_motor', '=', $folio)
                     ->get();
 
-            switch ($datosCuenta[0]->metodopago_id) {
+            switch ($metodoPago) {
                 case "1"://Tarjeta de credito
-                    $datos = datosEnvioBancoTC($datosTransaccion, $datosCuenta[0]->nombre_banco);
-                    break;
-                case "2"://spei
-//actualizamos la referencia en la transaccion
-                    $datos = datosEnvioReferencia($datosTransaccion, 2);
-                    break;
-                case "3"://ventanilla
-                    //actualizamos la referencia en la transaccion
-                    $datos = datosEnvioReferencia($datosTransaccion, 3);
-                    break;
-                case "4"://bancos en linea
-                    //actualizamos la referencia en la transaccion
-                    $datos = datosEnvioBancoLinea($datosTransaccion, $datosCuenta[0]->nombre_banco);
-                    break;
-            }
-
-
-            //obtenemos el metodo y el banco segun la cuenta que seleccionan
-            $datosCuenta = DB::table('oper_cuentasbanco as CB')
-                    ->join('oper_banco as OB', 'OB.id', '=', 'CB.banco_id')
-                    ->where('CB.id', '=', $cuenta_id)
-                    ->select('CB.metodopago_id', 'CB.banco_id', 'OB.nombre AS nombre_banco')
-                    ->get();
-
-            //obtenemos los datos de la transaccion
-            $datosTransaccion = DB::table('oper_transacciones as T')
-                    ->leftJoin('oper_tramites as Tr', 'T.id_transaccion_motor', '=', 'Tr.id_transaccion_motor')
-                    ->select('T.id_transaccion_motor', 'T.referencia', 'T.importe_transaccion', 'Tr.nombre', 'Tr.apellido_paterno', 'Tr.apellido_materno',
-                            'Tr.razon_social', 'Tr.id_tipo_servicio', \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(T.json,CHAR), "$.url_retorno")) url_retorno'),
-                            \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(T.json,CHAR),"$.url_confirma_pago")) url_confirmapago'),
-                            'T.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'Tr.importe_tramite')
-                    ->where('T.id_transaccion_motor', '=', $folio)
-                    ->get();
-
-            switch ($datosCuenta[0]->metodopago_id) {
-                case "1"://Tarjeta de credito
-                    $datos = datosEnvioBancoTC($datosTransaccion, $datosCuenta[0]->nombre_banco);
+                    $datos = datosEnvioBancoTC($datosTransaccion, $nombreBanco);
                     break;
                 case "2"://spei
                     //actualizamos la referencia en la transaccion
@@ -99,7 +59,7 @@ class DatabankController {
                     break;
                 case "4"://bancos en linea
                     //actualizamos la referencia en la transaccion
-                    $datos = datosEnvioBancoLinea($datosTransaccion, $datosCuenta[0]->nombre_banco);
+                    $datos = datosEnvioBancoLinea($datosTransaccion, $nombreBanco);
                     break;
 
                 default:
@@ -166,7 +126,7 @@ function datosEnvioBancoLinea($dT, $banco) {
                 'val_8' => "100", //tipopago del banco (TC)
                 'mp_signature' => hash_hmac('sha256', $dT[0]->id_transaccion_motor . $dT[0]->referencia . $dT[0]->importe_transaccion, $KeyHash)
             );
-            actualizaTipoPago($idTransaccion, 9, 4); //bancomer
+            actualizaTipoPago($idTransaccion, 9); //bancomer
             break;
         case "Banamex":
             $url_response = "paginaBanamex";
@@ -190,7 +150,7 @@ function datosEnvioBancoLinea($dT, $banco) {
                 'imp' => $totalTramite_
             );
 
-            actualizaTipoPago($idTransaccion, 3, 4); //banamex
+            actualizaTipoPago($idTransaccion, 3); //banamex
             break;
         case "Scotiabank":
             $url_response = "paginaScotiabank";
@@ -208,7 +168,7 @@ function datosEnvioBancoLinea($dT, $banco) {
                 't_importe' => $totalTransaccion,
                 'val_1' => '0'
             );
-            actualizaTipoPago($idTransaccion, 10, 4); //scotiabank
+            actualizaTipoPago($idTransaccion, 10); //scotiabank
             break;
         default:
             $error = 5;
@@ -228,7 +188,8 @@ function datosEnvioBancoLinea($dT, $banco) {
         "parametros" => json_encode($datosEnvio)
     );
     agregarLogEnvio($parametrosLog);
-    actualizaEstatusTransaccion($idTransaccion, 5);
+    actualizaMetodoPago($idTransaccion, 4);//Bancos en linea
+    actualizaEstatus($idTransaccion, 5);
     return $datosEnvio;
 }
 
@@ -273,7 +234,7 @@ function datosEnvioBancoTC($dT, $banco) {
                 "parametros" => json_encode($datosBanco)
             );
             agregarLogEnvio($parametrosLog);
-            actualizaTipoPago($idTransaccion, 8, 1); //bancomer TC, tarjeta credito
+            actualizaTipoPago($idTransaccion, 8); //bancomer TC, tarjeta credito
             break;
         case "NetPay"://netpay
             $url_response = "paginaNetPay";
@@ -309,8 +270,6 @@ function datosEnvioBancoTC($dT, $banco) {
                 "checkout" => array(
                     "cardType" => "004",
                     "merchantReferenceCode" => $postid,
-                    // "bill" => $bill,
-                    // "ship" => $ship,
                     "itemList" => $itemList,
                     "purchaseTotals" => array(
                         "grandTotalAmount" => $postttl, // total de operacion
@@ -319,20 +278,11 @@ function datosEnvioBancoTC($dT, $banco) {
                     "merchanDefinedDataList" => array(
                         array("id" => 2, "value" => "Web"),
                         array("id" => 20, "value" => "SERVICIO"),
-                        // array("id" => 23,"value" => "JUAN PEREZ"),           /// CAMBIAR POR PARAM DE PROD.
-                        // array("id" => 35,"value" => ""),
                         array("id" => 36, "value" => "Frecuente"),
                         array("id" => 37, "value" => "Si"),
-                        // array("id" => 38,"value" => ""),
-                        // array("id" => 39,"value" => ""),
-                        // array("id" => 40,"value" => ""),
-                        // array("id" => 41,"value" => ""),
                         array("id" => 42, "value" => "GOBIERNO DEL ESTADO DE NUEVO LEON"),
                         array("id" => 43, "value" => $storeIdAcq),
-                        // array("id" => 44,"value" => "Monterrey"),
-                        // array("id" => 45,"value" => "64000"),
                         array("id" => 46, "value" => $storeIdAcq),
-                        // array("id" => 93,"value" => "1234567890"),   /// AGREGAR PARAMETRO DE PROD.
                         array("id" => 94, "value" => $postid)
                     ),
                 )
@@ -376,7 +326,7 @@ function datosEnvioBancoTC($dT, $banco) {
                 "parametros" => json_encode($datosBanco)
             );
             agregarLogEnvio($parametrosLog);
-            actualizaTipoPago($idTransaccion, 26, 1); //netpay
+            actualizaTipoPago($idTransaccion, 26); //netpay
             break;
         default:
             $error = 4;
@@ -390,7 +340,8 @@ function datosEnvioBancoTC($dT, $banco) {
         "datos" => $datosBanco
     );
 
-    actualizaEstatusTransaccion($idTransaccion, 5);
+    actualizaEstatus($idTransaccion, 5);
+    actualizaMetodoPago($idTransaccion, 1);//Tarjeta Credito Debito
     return $datosEnvio;
 }
 
@@ -447,7 +398,9 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
         consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno);
     }
 
-    actualizaEstatusTransaccion($idTransaccion, $estatus);
+    actualizaEstatus($idTransaccion, $estatus);
+    actualizaMetodoPago($idTransaccion, $metodoPago);
+    actualizaTipoPago($idTransaccion, 11);
 
     $datosEnvio = array(
         "error" => 0,
@@ -479,16 +432,19 @@ function consumirUrlConfirmaPago($urlConfirmaPago, $json_retorno) {
     }
 }
 
-function actualizaTipoPago($idTransaccion, $tipoPago, $metodoPago) {
+function actualizaMetodoPago($idTransaccion, $metodoPago) {
     DB::table('oper_transacciones')
             ->where('id_transaccion_motor', $idTransaccion)
-            ->update(
-                    ['metodo_pago_id' => $metodoPago],
-                    ['tipo_pago' => $tipoPago]
-    );
+            ->update(['metodo_pago_id' => $metodoPago]);
 }
 
-function actualizaEstatusTransaccion($idTransaccion, $estatus) {
+function actualizaTipoPago($idTransaccion, $tipoPago) {
+    DB::table('oper_transacciones')
+            ->where('id_transaccion_motor', $idTransaccion)
+            ->update(['tipo_pago' => $tipoPago]);
+}
+
+function actualizaEstatus($idTransaccion, $estatus) {
     DB::table('oper_transacciones')
             ->where('id_transaccion_motor', $idTransaccion)
             ->update(['estatus' => $estatus]);
