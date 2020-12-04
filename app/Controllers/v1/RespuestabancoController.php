@@ -161,9 +161,20 @@ function datosTransaccion($idTransaccion) {
 
 //actualizamos el estatus de la transaccion
 function actualizaTransaccion($idTransaccion, $estatus) {
-    DB::table('oper_transacciones')
-            ->where('id_transaccion_motor', $idTransaccion)
-            ->update(['estatus' => $estatus]);
+    
+    
+    if ($estatus == 0) {
+        DB::table('oper_transacciones')
+                ->where('id_transaccion_motor', $idTransaccion)
+                ->update([
+                    'estatus' => $estatus,
+                    'fecha_pago' => DB::raw('now()')
+        ]);
+    } else {
+        DB::table('oper_transacciones')
+                ->where('id_transaccion_motor', $idTransaccion)
+                ->update(['estatus' => $estatus]);
+    }
 }
 
 function getLoginToken() {

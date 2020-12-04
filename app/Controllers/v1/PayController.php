@@ -69,7 +69,7 @@ class PayController {
                             })
                             ->select('OCB.metodopago_id', 'OT.id_transaccion_motor', 'OPT.cuentasbanco_id', 'OCB.banco_id',
                                     \DB::raw('COUNT(cuentasbanco_id) as conteoCuentas'),
-                                    'conteoTramites', 'OB.imagen')
+                                    'conteoTramites', 'OB.imagen','OB.nombre')
                             ->where("OT.id_transaccion_motor", "=", $folio)
                             ->groupBy('OPT.cuentasbanco_id')
                             ;
@@ -82,6 +82,7 @@ class PayController {
                 'metodo_pago' => $valor->metodopago_id,
                 'cuenta' => $valor->cuentasbanco_id,
                 'banco' => $valor->banco_id,
+                'nombre_banco' => $valor->nombre,
                 'imagen' => $valor->imagen
             );
         }
@@ -238,8 +239,10 @@ class PayController {
         $referenciaGenerada = generarReferencia($idTransaccionInsertada, $importe_transaccion, $fechaLimiteReferencia);
         DB::table('oper_transacciones')
                 ->where('id_transaccion_motor', $idTransaccionInsertada)
-                ->update(['referencia' => $referenciaGenerada]);
-
+                ->update(
+                        ['referencia' => $referenciaGenerada,
+                        'fecha_limite_referencia' => $fechaLimiteReferencia.' 23:59:59']
+                        );
         $tramitesLista = array();
         foreach ($tramite as $key) {//recorremos los tramites para crear la insersion 
             $datosSolicitante = $key->datos_solicitante;
