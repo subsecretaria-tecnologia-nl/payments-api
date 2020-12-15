@@ -167,6 +167,7 @@ class PayController {
         $conteo = $tramiteIndex = $tramiteAnterior = $tipoTramiteGeneral = 0;
         $tramiteSinCuenta = 0;
         $tramitesDescripcion = array();
+//        dd($tramitesEntidad);
         foreach ($tramitesEntidad as $valor) {
             $tramitesDescripcion[$valor->tipo_servicios_id] = $valor->Tipo_Descripcion;
             if ($valor->tramite_id == 0) {
@@ -242,6 +243,7 @@ class PayController {
         DB::table('oper_transacciones')
                 ->where('id_transaccion_motor', $idTransaccionInsertada)
                 ->update(['fecha_limite_referencia' => $fechaLimiteReferencia.' 23:59:59']);
+
         $tramitesLista = array();
         foreach ($tramite as $key) {//recorremos los tramites para crear la insersion 
             $datosSolicitante = $key->datos_solicitante;
