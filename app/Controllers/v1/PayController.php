@@ -238,10 +238,10 @@ class PayController {
         $referenciaGenerada = generarReferencia($idTransaccionInsertada, $importe_transaccion, $fechaLimiteReferencia);
         DB::table('oper_transacciones')
                 ->where('id_transaccion_motor', $idTransaccionInsertada)
-                ->update(
-                        ['referencia' => $referenciaGenerada,
-                        'fecha_limite_referencia' => $fechaLimiteReferencia.' 23:59:59']
-                        );
+                ->update(['referencia' => $referenciaGenerada]);
+        DB::table('oper_transacciones')
+                ->where('id_transaccion_motor', $idTransaccionInsertada)
+                ->update(['fecha_limite_referencia' => $fechaLimiteReferencia.' 23:59:59']);
         $tramitesLista = array();
         foreach ($tramite as $key) {//recorremos los tramites para crear la insersion 
             $datosSolicitante = $key->datos_solicitante;

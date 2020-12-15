@@ -126,7 +126,7 @@ function datosEnvioBancoLinea($dT, $banco) {
                 'val_8' => "100", //tipopago del banco (TC)
                 'mp_signature' => hash_hmac('sha256', $dT[0]->id_transaccion_motor . $dT[0]->referencia . $dT[0]->importe_transaccion, $KeyHash)
             );
-            actualizaTipoPago($idTransaccion, 9); //bancomer
+            actualizaTipoPago($idTransaccion, 9); //bancomer.
             break;
         case "Banamex":
             $url_response = "paginaBanamex";
@@ -150,7 +150,7 @@ function datosEnvioBancoLinea($dT, $banco) {
                 'imp' => $totalTramite_
             );
 
-            actualizaTipoPago($idTransaccion, 3); //banamex
+            actualizaTipoPago($idTransaccion, 3); //banamex.
             break;
         case "Scotiabank":
             $url_response = "paginaScotiabank";
@@ -168,7 +168,7 @@ function datosEnvioBancoLinea($dT, $banco) {
                 't_importe' => $totalTransaccion,
                 'val_1' => '0'
             );
-            actualizaTipoPago($idTransaccion, 10); //scotiabank
+            actualizaTipoPago($idTransaccion, 10); //scotiabank.
             break;
         default:
             $error = 5;
@@ -234,7 +234,7 @@ function datosEnvioBancoTC($dT, $banco) {
                 "parametros" => json_encode($datosBanco)
             );
             agregarLogEnvio($parametrosLog);
-            actualizaTipoPago($idTransaccion, 8); //bancomer TC, tarjeta credito
+            actualizaTipoPago($idTransaccion, 8); //bancomer TC, tarjeta credito.
             break;
         case "NetPay"://netpay
             $url_response = "paginaNetPay";
@@ -326,7 +326,7 @@ function datosEnvioBancoTC($dT, $banco) {
                 "parametros" => json_encode($datosBanco)
             );
             agregarLogEnvio($parametrosLog);
-            actualizaTipoPago($idTransaccion, 26); //netpay
+            actualizaTipoPago($idTransaccion, 26); //netpay.
             break;
         default:
             $error = 4;
@@ -400,7 +400,7 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
 
     actualizaEstatus($idTransaccion, $estatus);
     actualizaMetodoPago($idTransaccion, $metodoPago);
-    actualizaTipoPago($idTransaccion, 11);
+    actualizaTipoPago($idTransaccion, 11);//
 
     $datosEnvio = array(
         "error" => 0,

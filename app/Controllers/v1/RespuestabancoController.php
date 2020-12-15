@@ -166,10 +166,10 @@ function actualizaTransaccion($idTransaccion, $estatus) {
     if ($estatus == 0) {
         DB::table('oper_transacciones')
                 ->where('id_transaccion_motor', $idTransaccion)
-                ->update([
-                    'estatus' => $estatus,
-                    'fecha_pago' => DB::raw('now()')
-        ]);
+                ->update(['estatus' => $estatus]);
+        DB::table('oper_transacciones')
+                ->where('id_transaccion_motor', $idTransaccion)
+                ->update(['fecha_pago' => DB::raw('now()')]);
     } else {
         DB::table('oper_transacciones')
                 ->where('id_transaccion_motor', $idTransaccion)
