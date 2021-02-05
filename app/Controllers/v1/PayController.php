@@ -69,7 +69,7 @@ class PayController {
                             })
                             ->select('OCB.metodopago_id', 'OT.id_transaccion_motor', 'OPT.cuentasbanco_id', 'OCB.banco_id',
                                     \DB::raw('COUNT(cuentasbanco_id) as conteoCuentas'),
-                                    'conteoTramites', 'OB.imagen','OB.nombre')
+                                    'conteoTramites', 'OB.imagen', 'OB.nombre')
                             ->where("OT.id_transaccion_motor", "=", $folio)
                             ->groupBy('OPT.cuentasbanco_id')
                             ;
@@ -100,6 +100,7 @@ class PayController {
         if (validaTransaccionDuplicada($entidad, $id_transaccion)) {
             throw new ShowableException(422, "La transaccion ya existe en la entidad");
         }
+        $reciboPago = ""; //variable para decir que se pago en cero
         $arrTipoServicioQuery = $arrTipoServicioRequest = array();
         $sumaTramites = 0; //para sumar el importe de los tramites
         $montoMaximoTramite = 0;
@@ -221,7 +222,7 @@ class PayController {
                 'entidad' => $entidad,
                 'estatus' => 45, //en proceso
                 'importe_transaccion' => $importe_transaccion,
-                'metodo_pago_id' => 0,
+                'metodo_pago_id' => 0, //no definido
                 'referencia' => "tmp",
                 'fecha_transaccion' => date("Y-m-d H:i:s"),
                 'json' => json_encode($request)
@@ -242,7 +243,21 @@ class PayController {
                 ->update(['referencia' => $referenciaGenerada]);
         DB::table('oper_transacciones')
                 ->where('id_transaccion_motor', $idTransaccionInsertada)
-                ->update(['fecha_limite_referencia' => $fechaLimiteReferencia.' 23:59:59']);
+                ->update(['fecha_limite_referencia' => $fechaLimiteReferencia . ' 23:59:59']);
+
+        //si todo es ok y el importe total es cero
+        if ($importe_transaccion == 0) {
+            $parametros = array(
+                'id_transaccion' => $idTransaccionInsertada,
+                'referencia' => $referenciaGenerada
+            );
+            actualizaPagoCero($parametros);
+            $reciboPago = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccionInsertada;
+            ;
+        } else {
+            
+        }
+
 
         $tramitesLista = array();
         foreach ($tramite as $key) {//recorremos los tramites para crear la insersion 
@@ -338,6 +353,7 @@ class PayController {
             );
         }
         $arrRespuesta = array(
+            "pago_cero" => $reciboPago,
             "referencia" => $referenciaGenerada,
             "folio" => $idTransaccionInsertada,
             "cuentas" => $arrDatosCuentas,
@@ -346,6 +362,51 @@ class PayController {
         return $arrRespuesta;
     }
 
+}
+
+function actualizaPagoCero($parametros) {
+    $dia = date("d");
+    $mes = date("m");
+    $anio = date("Y");
+    $fechaEjecucion = $anio . '-' . $mes . '-' . $dia;
+
+    DB::table('oper_transacciones')
+            ->where('id_transaccion_motor', $parametros['id_transaccion'])
+            ->update(['estatus' => 0]); //pagado
+    DB::table('oper_transacciones')
+            ->where('id_transaccion_motor', $parametros['id_transaccion'])
+            ->update(['metodo_pago_id' => 3]); //ventanilla
+    //buscamos si existe un registro con fecha de hoy y diferente al banco 18
+    $existeRegistro = DB::table('oper_processedregisters as A')
+                    ->where('A.fecha_ejecucion', $fechaEjecucion)
+                    ->where('A.banco_id', '!=', 18)
+                    ->get()->toArray();
+    if ($existeRegistro) {
+        $fechaEjecucion = date('Y', time() + 84600) . '-' . date('m', time() + 84600) . '-' . date('d', time() + 84600);
+    }
+
+    $datosRegistro = [
+        [
+            'origen' => 999,
+            'day' => $dia,
+            'month' => $mes,
+            'year' => $anio,
+            'monto' => 0,
+            'filename' => '',
+            'mensaje' => '',
+            'banco_id' => 18,
+            'cuenta_banco' => '',
+            'cuenta_alias' => '',
+            'tipo_servicio' => 0,
+            'archivo_corte' => '',
+            'info_transacciones' => '',
+            'transaccion_id' => $parametros['id_transaccion'],
+            'referencia' => $parametros['referencia'],
+            'fecha_ejecucion' => $fechaEjecucion
+        ]
+    ];
+    //insertamos el registro
+    DB::table('oper_processedregisters')->insert($datosRegistro);
 }
 
 function validaTransaccionDuplicada($entidad, $idTransaccion) {
