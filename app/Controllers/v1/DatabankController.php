@@ -324,6 +324,9 @@ function datosEnvioBancoTC($dT, $banco) {
                 $datosBanco = array(
                     'jwt' => $lgk
                 );
+            } else {
+                $error = 5;
+                $datosBanco = $response;
             }
             $parametrosLog = array(
                 "id_transaccion" => $idTransaccion,
