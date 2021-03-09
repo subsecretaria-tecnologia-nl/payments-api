@@ -192,7 +192,7 @@ function datosEnvioBancoLinea($dT, $banco) {
         "parametros" => json_encode($datosEnvio)
     );
     agregarLogEnvio($parametrosLog);
-    actualizaMetodoPago($idTransaccion, 4);//Bancos en linea
+    actualizaMetodoPago($idTransaccion, 4); //Bancos en linea
     actualizaEstatus($idTransaccion, 5);
     return $datosEnvio;
 }
@@ -257,16 +257,19 @@ function datosEnvioBancoTC($dT, $banco) {
             $lgk = getLoginToken();
 
             foreach ($dT as $ktram => $vtram) {
-                $descripcion = tipoServicioDesc($vtram->id_tipo_servicio);
-                $productName = $descSerEgob = $descripcion->Tipo_Descripcion;
-                $itemList[] = array(
-                    "id" => $vtram->id_tramite,
-                    "productSKU" => "000",
-                    "unitPrice" => $vtram->importe_tramite, // total de operacion
-                    "productName" => $productName,
-                    "quantity" => 1,
-                    "productCode" => $vtram->id_tramite
-                );
+                //si el importe es mayor a cero agregarlo
+                if ($vtram->importe_tramite > 0) {
+                    $descripcion = tipoServicioDesc($vtram->id_tipo_servicio);
+                    $productName = $descSerEgob = $descripcion->Tipo_Descripcion;
+                    $itemList[] = array(
+                        "id" => $vtram->id_tramite,
+                        "productSKU" => "000",
+                        "unitPrice" => $vtram->importe_tramite, // total de operacion
+                        "productName" => $productName,
+                        "quantity" => 1,
+                        "productCode" => $vtram->id_tramite
+                    );
+                }
             }
 
             $data = array(
@@ -352,7 +355,7 @@ function datosEnvioBancoTC($dT, $banco) {
     );
 
     actualizaEstatus($idTransaccion, 5);
-    actualizaMetodoPago($idTransaccion, 1);//Tarjeta Credito Debito
+    actualizaMetodoPago($idTransaccion, 1); //Tarjeta Credito Debito
     return $datosEnvio;
 }
 
@@ -412,7 +415,7 @@ function datosEnvioReferencia($datosTransaccion, $metodoPago) {
     actualizaEstatus($idTransaccion, $estatus);
     actualizaMetodoPago($idTransaccion, $metodoPago);
 
-    actualizaTipoPago($idTransaccion, 11);//
+    actualizaTipoPago($idTransaccion, 11); //
 
 
     $datosEnvio = array(
