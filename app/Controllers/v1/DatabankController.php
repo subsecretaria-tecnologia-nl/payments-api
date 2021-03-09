@@ -58,7 +58,7 @@ class DatabankController {
                     $datos = datosEnvioReferencia($datosTransaccion, 3);
                     break;
                 case "4"://bancos en linea
-                    //actualizamos la referencia en la transaccion
+                    //actualizamos la referencia en la transacciond
                     $datos = datosEnvioBancoLinea($datosTransaccion, $nombreBanco);
                     break;
 
