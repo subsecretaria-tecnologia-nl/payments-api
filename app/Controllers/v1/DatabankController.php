@@ -374,10 +374,11 @@ function tipoServicioDesc($idTipoServicio) {
 }
 
 function datosEnvioReferencia($datosTransaccion, $metodoPago) {
+    $variablesEnt = explode("|", getenv("FORMATO_RECIBO"));
+    $urlFormatoPago = $variablesEnt[0] ;
     $arrTramites = array();
     $idTransaccion = $idTransaccionEntidad = -1;
     $urlRetorno = $urlConfirmaPago = "";
-    $urlFormatoPago = 'http://egobierno.nl.gob.mx/egob/formatoRepositorioQA.php?Folio=';
     $estatus = 60; //ventanilla
     if ($metodoPago == 2) {//spei
         $estatus = 70; //spei

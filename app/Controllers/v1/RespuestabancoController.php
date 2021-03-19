@@ -9,7 +9,7 @@ use App\Utils\Utils;
 class RespuestabancoController {
 
     public static function post_index($request) {
-
+        $variablesEntRecibo = explode("|", getenv("FORMATO_RECIBO"));
         $idTransaccion = -1;
         $status = 45; //estatus de la transaccion
         $estatus = 0; //estatus del la respuesta
@@ -30,7 +30,7 @@ class RespuestabancoController {
                 $status = 0;
                 $estatus = 1;
                 $mensaje = 'correcto';
-                $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
+                $url_recibo = $variablesEntRecibo[1] . $idTransaccion;
             }
         } else if (isset($request->mp_response)) {//variable de bancomer
             $variablesEnt = explode("|", getenv("BANCOMER_DATA"));
@@ -52,7 +52,7 @@ class RespuestabancoController {
                 $estatus = 1;
                 $status = 0;
                 $mensaje = 'correcto';
-                $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
+                $url_recibo = $variablesEntRecibo[1] . $idTransaccion;
             }
         } else if (isset($request->indPago)) {//variable de Scotibank
             $banco = "Scotiabank";
@@ -64,7 +64,7 @@ class RespuestabancoController {
                 $estatus = 1;
                 $status = 0;
                 $mensaje = 'correcto';
-                $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
+                $url_recibo = $variablesEntRecibo[1] . $idTransaccion;
             }
         } else if (isset($request->transactionToken)) {//variable de netpay
             $banco = "NetPay";
@@ -98,7 +98,7 @@ class RespuestabancoController {
             if ($response == "00") {
                 $estatus = 1;
                 $status = 0;
-                $url_recibo = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccion;
+                $url_recibo = $variablesEntRecibo[1] . $idTransaccion;
             }
         }
 
