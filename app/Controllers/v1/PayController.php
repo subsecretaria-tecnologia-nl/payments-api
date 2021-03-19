@@ -252,8 +252,8 @@ class PayController {
                 'referencia' => $referenciaGenerada
             );
             actualizaPagoCero($parametros);
-            $reciboPago = 'http://10.153.144.94/egobQA/recibopago.php?folio=' . $idTransaccionInsertada;
-            ;
+            $variablesEnt = explode("|", getenv("FORMATO_RECIBO"));
+            $reciboPago = $variablesEnt[1] . $idTransaccionInsertada;
         } else {
             
         }
@@ -359,6 +359,7 @@ class PayController {
             "cuentas" => $arrDatosCuentas,
             "tramites" => $tramitesLista
         );
+        
         return $arrRespuesta;
     }
 
