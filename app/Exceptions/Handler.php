@@ -68,9 +68,9 @@ class Handler extends ExceptionHandler
                 $message = $exception->getMessage();
         }
 
-        if(env("APP_ENV") == "production"){
-            $message = "Internal Server Error";
-        }
+        // if(env("APP_ENV") == "production"){
+        //     $message = "Internal Server Error";
+        // }
 
         $error["message"] = $message;
         if(env("APP_ENV") != "production")
