@@ -129,9 +129,9 @@ class PayController {
                     $sumaDetalle -= $sumaDescuentos; //restamos la suma de los descuentos
                 }
 
+            }
                 if ($sumaDetalle != $key->importe_tramite)//validamos el la suma de los conceptos no sean mayor al importe tramite
                     throw new ShowableException(422, "La suma de los conceptos es mayor al importe del tramite" . $sumaDetalle . "-" . $key->importe_tramite);
-            }
         }
         $arrTipoServicioRequestUnico = array_unique($arrTipoServicioRequest);
         $tramitesEntidad = DB::table('oper_entidadtramite as ET')
@@ -173,6 +173,7 @@ class PayController {
             $tramitesDescripcion[$valor->tipo_servicios_id] = $valor->Tipo_Descripcion;
             if ($valor->tramite_id == 0) {
                 $tramiteSinCuenta = 1;
+                $arrTipoServicioQuery[]=0;
                 break;
             }
             if ($conteo == 0) {
