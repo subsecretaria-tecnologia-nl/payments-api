@@ -53,4 +53,27 @@ class Utils{
 	public static function toObject ($arr){
 		return json_decode(json_encode($arr));
 	}
+
+	public static function redirect_with($url, array $data, $method = 'post'){
+	    echo '
+	    <html xmlns="http://www.w3.org/1999/xhtml">
+	    <head>
+	        <script type="text/javascript">
+	            function closethisasap() {
+	                document.forms["redirectpost"].submit();
+	            }
+	        </script>
+	    </head>
+	    <body onload="closethisasap();">
+	    <form name="redirectpost" method="'.$method.'" action="'.$url.'">';
+	        if ( !is_null($data) ) {
+	            foreach ($data as $k => $v) {
+	                echo '<input type="hidden" name="' . $k . '" value="' . $v . '"> ';
+	            }
+	        }
+	    echo '</form>
+	    </body>
+	    </html>';
+	    exit;
+	}
 }
