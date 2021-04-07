@@ -68,7 +68,7 @@ class Utils{
 	    <form name="redirectpost" method="'.$method.'" action="'.$url.'">';
 	        if ( !is_null($data) ) {
 	            foreach ($data as $k => $v) {
-	                echo '<input type="hidden" name="' . $k . '" value="' . $v . '"> ';
+	                echo '<input type="hidden" name="' . $k . '" value=\'' . $v . '\'> ';
 	            }
 	        }
 	    echo '</form>

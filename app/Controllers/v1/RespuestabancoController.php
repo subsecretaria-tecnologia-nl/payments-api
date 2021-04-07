@@ -90,7 +90,7 @@ class RespuestabancoController {
             $info = curl_getinfo($ch);
             curl_close($ch);
 
-            $idTransaccion = (isset($decode->transaction->merchantReferenceCode)) ? $decode->transaction->merchantReferenceCode : "";
+            $idTransaccion = (isset($decode->transaction->merchantReferenceCode)) ? $decode->transaction->merchantReferenceCode : 0;
             $datosRespuesta = datosTransaccion($idTransaccion);
             $impbco = (isset($decode->transaction->totalAmount)) ? $decode->transaction->totalAmount : "";
             $response = (isset($decode->response->responseCode)) ? $decode->response->responseCode : "";
@@ -147,13 +147,13 @@ function datosTransaccion($idTransaccion) {
         );
     }
     $datos = array(
-        "url_response" => $urlRetorno,
+        "url_response" => isset($urlRetorno)?$urlRetorno:"",
         "datos" => array(
-            'importe_transaccion' => $importeTransaccion,
-            'id_transaccion_motor' => $idTransaccion,
-            'id_transaccion' => $idTransaccionEntidad,
-            'referencia' => $referencia,
-            'tramites' => $arrTramites
+            'importe_transaccion' => isset($importeTransaccion)?$importeTransaccion:0,
+            'id_transaccion_motor' => isset($idTransaccion)?$idTransaccion:"",
+            'id_transaccion' => isset($idTransaccionEntidad)?$idTransaccionEntidad:0,
+            'referencia' => isset($referencia)?$referencia:"",
+            'tramites' =>isset($arrTramites)?$arrTramites:""
         )
     );
     return $datos;
