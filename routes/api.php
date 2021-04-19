@@ -18,6 +18,16 @@ Route::group(["prefix" => (getenv("APP_PREFIX") ?? "")], function(){
 	Route::get('/', function() {
 		return "THIS ROUTE DOES NOT EXISTS.";
 	});
+
+	Route::group(["prefix" => "redirect"], function(){
+		Route::get("/", "RedirectController@index");
+		Route::post("/", "RedirectController@index");
+	});
+
+	Route::group(["prefix" => "front"], function(){
+		Route::post("/", "FrontController@index");
+	});
+	
 	Route::group([
 		'prefix' => 'v1',
 		'middleware' => [
