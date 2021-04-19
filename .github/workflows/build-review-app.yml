@@ -67,8 +67,13 @@ jobs:
           cp ${{ secrets.QA_FOLDER }}/.env .env &&
 
           search_1="API_ENDPOINT=\"http:\/\/10.153.144.218\/payments-api" &&
+          search_2="APP_PREFIX=\"payments-api" &&
+          
           replace_1="API_ENDPOINT=\"http:\/\/10.153.144.218\/$branchPath" &&
+          replace_2="APP_PREFIX=\"$branchPath" &&
+          
           sed -i "s/$search_1/$replace_1/gi" .env &&
+          sed -i "s/$search_2/$replace_2/gi" .env &&
 
           composer install &&
           composer dump-autoload &&
