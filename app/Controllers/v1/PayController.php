@@ -128,10 +128,9 @@ class PayController {
 
                     $sumaDetalle -= $sumaDescuentos; //restamos la suma de los descuentos
                 }
-
             }
-                if ($sumaDetalle != $key->importe_tramite)//validamos el la suma de los conceptos no sean mayor al importe tramite
-                    throw new ShowableException(422, "La suma de los conceptos es mayor al importe del tramite" . $sumaDetalle . "-" . $key->importe_tramite);
+            if ($sumaDetalle != $key->importe_tramite)//validamos el la suma de los conceptos no sean mayor al importe tramite
+                throw new ShowableException(422, "La suma de los conceptos es mayor al importe del tramite" . $sumaDetalle . "-" . $key->importe_tramite);
         }
         $arrTipoServicioRequestUnico = array_unique($arrTipoServicioRequest);
         $tramitesEntidad = DB::table('oper_entidadtramite as ET')
@@ -168,12 +167,11 @@ class PayController {
         $conteo = $tramiteIndex = $tramiteAnterior = $tipoTramiteGeneral = 0;
         $tramiteSinCuenta = 0;
         $tramitesDescripcion = array();
-//        dd($tramitesEntidad);
         foreach ($tramitesEntidad as $valor) {
             $tramitesDescripcion[$valor->tipo_servicios_id] = $valor->Tipo_Descripcion;
             if ($valor->tramite_id == 0) {
                 $tramiteSinCuenta = 1;
-                $arrTipoServicioQuery[]=0;
+                $arrTipoServicioQuery[] = 0;
                 break;
             }
             if ($conteo == 0) {
@@ -236,7 +234,6 @@ class PayController {
 
         //calculamos la fecha limite de la referencia
         $fechaLimiteReferencia = calcularFechaLimiteReferencia($tipoTramiteGeneral);
-
         //actualizamos la referencia en la transaccion
         $referenciaGenerada = generarReferencia($idTransaccionInsertada, $importe_transaccion, $fechaLimiteReferencia);
         DB::table('oper_transacciones')
@@ -360,7 +357,7 @@ class PayController {
             "cuentas" => $arrDatosCuentas,
             "tramites" => $tramitesLista
         );
-        
+
         return $arrRespuesta;
     }
 
@@ -433,12 +430,13 @@ function calcularFechaLimiteReferencia($tipoServicio) {
                     ->where('B.tipo_code', $tipoServicio)
                     ->get()->toArray();
 
-    $periodicidad = isset($datosLimite[0]->periodicidad) ? $datosLimite[0]->periodicidad : "Anual";
-    $vigencia = isset($datosLimite[0]->vencimiento) ? $datosLimite[0]->vencimiento : "1";
+    $periodicidad = isset($datosLimite[0]->periodicidad) ? $datosLimite[0]->periodicidad : "Dia"; //valor default (limitereferencia_id = 0)
+    $vigencia = isset($datosLimite[0]->vencimiento) ? $datosLimite[0]->vencimiento : "3"; //valor default 3 dias
 
     $anio = date("Y");
     $mes = date("m");
     $dia = date("d");
+
     switch ($periodicidad) {
         case "Anual":
             if ($vigencia < $mes) {
@@ -455,11 +453,19 @@ function calcularFechaLimiteReferencia($tipoServicio) {
             }
 
             break;
+        case "Dia":
+            $fechaLimite = fechaVigenciaDias($vigencia);
+            break;
 
         default:
             break;
     }
     return $fechaLimite;
+}
+
+function fechaVigenciaDias($diasVigencia) {
+    $fechaVigencia = DB::select('SELECT egobierno.nuevaFechaHabil(now(), ' . $diasVigencia . ' , 1) AS Resultado');
+    return $fechaVigencia[0]->Resultado;
 }
 
 function validaFechaVigenciaEstablecida($dia) {
@@ -479,11 +485,10 @@ function validaFechaVigenciaEstablecida($dia) {
 function fechaVigenciaMensual($dia) {
     $diasVigencia = 3;
     $hoy = date("Y-m-d");
-    $fechaVigenciaEstablecida = validaFechaVigenciaEstablecida($dia);
+    $fechaVigenciaEstablecida = validaFechaVigenciaEstablecida($dia); //valida que no sea sabado ni domingo
     $fechaVigencia = date("Y-m-d", strtotime($hoy . "+ 5 days"));
     //regresa la fecha contando 3 dias habiles omitiendo los feriados
-    $fechaVigenciaBD = DB::select('SELECT nuevaFechaHabil(now(), ' . $diasVigencia . ' , 1) AS Resultado');
-
+    $fechaVigenciaBD = fechaVigenciaDias($diasVigencia);
     if (isset($fechaVigenciaBD[0]->Resultado) && $fechaVigenciaBD[0]->Resultado != "") {
         $fechaVigencia = $fechaVigenciaBD[0]->Resultado;
     }
