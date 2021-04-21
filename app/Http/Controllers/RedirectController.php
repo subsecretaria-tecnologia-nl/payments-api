@@ -28,11 +28,8 @@ class RedirectController extends Controller {
         // REDIRECCIONAS A LA RUTA DE RETORNO POR POST
         $b = new RespuestabancoController();
         $res = $b->post_index($request);
-        $urlRetorno = isset($res['url_response'])?$res['url_response']:"";
-        $urlRetorno = "http://10.153.144.94/egobQA/pruebas/newEmptyPHP.php";
-        
+        $urlRetorno = isset($res['url_response'])?$res['url_response']:"paginaError";
         $data = ["json"=>json_encode($res['datos'])];
-
         return Utils::redirect_with($urlRetorno, $data, 'post');
     }
 
