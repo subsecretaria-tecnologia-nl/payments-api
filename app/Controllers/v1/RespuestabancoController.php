@@ -9,6 +9,10 @@ use App\Utils\Utils;
 class RespuestabancoController {
 
     public static function post_index($request) {
+//                DB::listen(function($query) {
+//            //Imprimimos la consulta ejecutada
+//            echo "<pre> {$query->sql } </pre>";
+//        });
         $variablesEntRecibo = explode("|", getenv("FORMATO_RECIBO"));
         $idTransaccion = -1;
         $status = 45; //estatus de la transaccion
@@ -26,7 +30,22 @@ class RespuestabancoController {
             $idTransaccion = (isset($request->REFER_PGO)) ? substr($request->REFER_PGO, 0, -2) : "";
             $datosRespuesta = datosTransaccion($idTransaccion);
             $status = 15; //tramite no autorizado
-            if (isset($request->AUTORIZA) && !empty($request->AUTORIZA)) {
+            if (isset($request->AUTORIZA) && !empty($request->AUTORIZA) && $datosRespuesta['datos']['id_transaccion'] != ""
+            ) {
+                $masterLog = array(
+                    "fecha_pago" => date("Y-m-d"),
+                    "referencia" => $datosRespuesta['datos']['referencia'],
+                    "id_transaccion" => $idTransaccion,
+                    "banco_desc" => 'Banamex',
+                    "plataforma" => 'ApiPago',
+                    "monto" => $datosRespuesta['datos']['importe_transaccion'],
+                    "data" => json_encode($request),
+                    "extra" => $datosRespuesta['tipos_tramites'],
+                    "created_at" => date("Y-m-d H:i:s"),
+                    "updated_at" => date("Y-m-d H:i:s")
+                );
+
+                agregarMasterLog($masterLog);
                 $status = 0;
                 $estatus = 1;
                 $mensaje = 'correcto';
@@ -49,6 +68,21 @@ class RespuestabancoController {
 
             if ($mp_response == "00" && (md5($hash) === md5($regHash))
             ) {//pagado
+                $masterLog = array(
+                    "fecha_pago" => date("Y-m-d"),
+                    "referencia" => $datosRespuesta['datos']['referencia'],
+                    "id_transaccion" => $idTransaccion,
+                    "banco_desc" => 'Bancomer',
+                    "plataforma" => 'ApiPago',
+                    "monto" => $datosRespuesta['datos']['importe_transaccion'],
+                    "data" => json_encode($request),
+                    "extra" => $datosRespuesta['tipos_tramites'],
+                    "created_at" => date("Y-m-d H:i:s"),
+                    "updated_at" => date("Y-m-d H:i:s")
+                );
+
+                agregarMasterLog($masterLog);
+
                 $estatus = 1;
                 $status = 0;
                 $mensaje = 'correcto';
@@ -58,9 +92,24 @@ class RespuestabancoController {
             $banco = "Scotiabank";
             $status = 15; //tramite no autorizado
             $idTransaccion = (isset($request->s_transm)) ? $request->s_transm : "";
+            $datosRespuesta = datosTransaccion($idTransaccion);
             $estatusBanco = (isset($request->indPago)) ? $request->indPago : "";
 
             if ($estatusBanco == 1) {//Pagado
+                $masterLog = array(
+                    "fecha_pago" => date("Y-m-d"),
+                    "referencia" => $datosRespuesta['datos']['referencia'],
+                    "id_transaccion" => $idTransaccion,
+                    "banco_desc" => 'Scotiabank',
+                    "plataforma" => 'ApiPago',
+                    "monto" => $datosRespuesta['datos']['importe_transaccion'],
+                    "data" => json_encode($request),
+                    "extra" => $datosRespuesta['tipos_tramites'],
+                    "created_at" => date("Y-m-d H:i:s"),
+                    "updated_at" => date("Y-m-d H:i:s")
+                );
+
+                agregarMasterLog($masterLog);
                 $estatus = 1;
                 $status = 0;
                 $mensaje = 'correcto';
@@ -92,10 +141,27 @@ class RespuestabancoController {
 
             $idTransaccion = (isset($decode->transaction->merchantReferenceCode)) ? $decode->transaction->merchantReferenceCode : 0;
             $datosRespuesta = datosTransaccion($idTransaccion);
+
             $impbco = (isset($decode->transaction->totalAmount)) ? $decode->transaction->totalAmount : "";
             $response = (isset($decode->response->responseCode)) ? $decode->response->responseCode : "";
             $mensaje = (isset($decode->response->responseMsg)) ? $decode->response->responseMsg : "No recibido";
+
+
             if ($response == "00") {
+                $masterLog = array(
+                    "fecha_pago" => date("Y-m-d"),
+                    "referencia" => $datosRespuesta['datos']['referencia'],
+                    "id_transaccion" => $idTransaccion,
+                    "banco_desc" => 'NetPay',
+                    "plataforma" => 'ApiPago',
+                    "monto" => $datosRespuesta['datos']['importe_transaccion'],
+                    "data" => json_encode($decode),
+                    "extra" => $datosRespuesta['tipos_tramites'],
+                    "created_at" => date("Y-m-d H:i:s"),
+                    "updated_at" => date("Y-m-d H:i:s")
+                );
+
+                agregarMasterLog($masterLog);
                 $estatus = 1;
                 $status = 0;
                 $url_recibo = $variablesEntRecibo[1] . $idTransaccion;
@@ -122,6 +188,10 @@ class RespuestabancoController {
 
 }
 
+function agregarMasterLog($datosMasterLog) {
+    DB::table('oper_pagosupdate_log')->insert($datosMasterLog);
+}
+
 function agregarLogEnvio($datosLog) {
     DB::table('oper_log_bancos')->insert($datosLog);
 }
@@ -130,30 +200,40 @@ function datosTransaccion($idTransaccion) {
     $datosTransaccion = DB::table('oper_transacciones as OT')
             ->where('OT.id_transaccion_motor', '=', $idTransaccion)
             ->leftJoin('oper_tramites as Tr', 'OT.id_transaccion_motor', '=', 'Tr.id_transaccion_motor')
+            ->leftJoin('egobierno.tipo_servicios as TS', 'Tr.id_tipo_servicio', '=', 'TS.Tipo_Code')
             ->select('OT.id_transaccion_motor', 'OT.id_transaccion', 'Tr.id_tramite_motor', 'Tr.id_tramite', 'OT.referencia', 'Tr.importe_tramite',
-                    'OT.importe_transaccion',
+                    'OT.importe_transaccion', 'TS.Tipo_Code', 'TS.Tipo_Descripcion',
                     \DB::raw('JSON_UNQUOTE(JSON_EXTRACT(CONVERT(OT.json,CHAR), "$.url_retorno")) url_retorno'))
             ->get();
+    $tiposTramites = array();
+
     foreach ($datosTransaccion as $valor) {
+
         $idTransaccion = $valor->id_transaccion_motor;
         $importeTransaccion = $valor->importe_transaccion;
         $referencia = $valor->referencia;
         $idTransaccionEntidad = $valor->id_transaccion;
         $urlRetorno = $valor->url_retorno;
+        $tiposTramites = array(
+            "id_tramite" => $valor->Tipo_Code,
+            "des_tramite" => $valor->Tipo_Descripcion
+        );
         $arrTramites[] = array(
             "id_tramite_motor" => $valor->id_tramite_motor,
             "id_tramite" => $valor->id_tramite,
             "importe_tramite" => $valor->importe_tramite
         );
     }
+
     $datos = array(
-        "url_response" => isset($urlRetorno)?$urlRetorno:"",
+        "url_response" => isset($urlRetorno) ? $urlRetorno : "",
+        "tipos_tramites" => json_encode($tiposTramites, JSON_UNESCAPED_UNICODE),
         "datos" => array(
-            'importe_transaccion' => isset($importeTransaccion)?$importeTransaccion:0,
-            'id_transaccion_motor' => isset($idTransaccion)?$idTransaccion:"",
-            'id_transaccion' => isset($idTransaccionEntidad)?$idTransaccionEntidad:0,
-            'referencia' => isset($referencia)?$referencia:"",
-            'tramites' =>isset($arrTramites)?$arrTramites:""
+            'importe_transaccion' => isset($importeTransaccion) ? $importeTransaccion : 0,
+            'id_transaccion_motor' => isset($idTransaccion) ? $idTransaccion : "",
+            'id_transaccion' => isset($idTransaccionEntidad) ? $idTransaccionEntidad : 0,
+            'referencia' => isset($referencia) ? $referencia : "",
+            'tramites' => isset($arrTramites) ? $arrTramites : ""
         )
     );
     return $datos;
@@ -161,8 +241,8 @@ function datosTransaccion($idTransaccion) {
 
 //actualizamos el estatus de la transaccion
 function actualizaTransaccion($idTransaccion, $estatus) {
-    
-    
+
+
     if ($estatus == 0) {
         DB::table('oper_transacciones')
                 ->where('id_transaccion_motor', $idTransaccion)
