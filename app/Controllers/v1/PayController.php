@@ -380,10 +380,10 @@ function actualizaPagoCero($parametros) {
     if ($existeRegistro) {
         $fechaEjecucion = date('Y', time() + 84600) . '-' . date('m', time() + 84600) . '-' . date('d', time() + 84600);
     }
-
+    $origen=substr($parametros['referencia'], 0, 2);
     $datosRegistro = [
         [
-            'origen' => 999,
+            'origen' => $origen,
             'day' => $dia,
             'month' => $mes,
             'year' => $anio,
