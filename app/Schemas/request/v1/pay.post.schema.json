@@ -13,7 +13,8 @@
     "url_retorno": {
       "description": "url cual el servicio retorna",
       "type": "string",
-      "pattern": "^[\\S]$|^[\\S].*[\\S]$"
+      "pattern": "^[\\S]$|^[\\S].*[\\S]$",
+        "maxLength": 250
     },
     "importe_transaccion": {
       "description": "cantidad total de la transaccion",
@@ -28,7 +29,9 @@
       "pattern": "^[0-9]([0-9])?$"
     },
     "url_confirma_pago": {
-      "description": "se utiliza para consumir el servicio de la entidad"
+      "description": "se utiliza para consumir el servicio de la entidad",
+        "type": ["string","null"],
+          "maxLength": 250
     },
     "es_referencia": {
       "description": "se utiliza para saber si se hace redireccion o no",
@@ -64,15 +67,15 @@
           },
           "auxiliar_1": {
             "maxLength": 100,
-            "type": "string"
+            "type": ["string","null"]
           },
           "auxiliar_2": {
             "maxLength": 100,
-            "type": "string"
+            "type": ["string","null"]
           },
           "auxiliar_3": {
             "maxLength": 100,
-            "type": "string"
+            "type": ["string","null"]
           },
           "datos_solicitante": {
             "type": "object",
@@ -86,47 +89,47 @@
                 "type": "string"
               },
               "apellido_materno": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 100
               },
               "razon_social": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 200
               },
               "rfc": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 50
               },
               "curp": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 50
               },
               "email": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 150
               },
               "calle": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 200
               },
               "colonia": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 100
               },
               "numexterior": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 10
               },
               "numinterior": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 10
               },
               "municipio": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 100
               },
               "codigopostal": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 11
               }
             },
@@ -148,43 +151,43 @@
                 "maxLength": 100
               },
               "razon_social": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 200
               },
               "rfc": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 50
               },
               "curp": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 50
               },
               "email": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 150
               },
               "calle": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 200
               },
               "colonia": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 100
               },
               "numexterior": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 10
               },
               "numinterior": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 10
               },
               "municipio": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 100
               },
               "codigopostal": {
-                "type": "string",
+                "type": ["string","null"],
                 "maxLength": 11
               }
             },
