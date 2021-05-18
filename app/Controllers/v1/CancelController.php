@@ -9,7 +9,7 @@ use App\Utils\Utils;
 class CancelController {
 
     public static function post_index($request) {
-        $respuesta = array("error" => 1, "mensaje" => "desconocido");
+        $respuesta = array();
         extract(get_object_vars($request));
         if (isset($referencia)) {
             if (existeReferencia($referencia)) {
@@ -18,8 +18,6 @@ class CancelController {
                         "error" => 0,
                         "msg" => "Actualizado Correctamente"
                     );
-                } else {
-                    throw new ShowableException(423, "Sin Actualizacion");
                 }
             } else {
                 throw new ShowableException(424, "Referencia no encontrada");
@@ -40,7 +38,7 @@ function actualizaReferencia($referencia) {
                 ->where('referencia', (string) $referencia)
                 ->update(['estatus' => 65]);
         $return = true;
-    } catch (PdoExcepcion $pdoE) {
+    } catch (\Illuminate\Database\QueryException $pdoE) {
         throw new ShowableException(426, "Error al intentar actualizar");
     }
     return $return;
@@ -53,7 +51,7 @@ function existeReferencia($referencia) {
                         ->select('referencia')
                         ->where('referencia', $referencia)
                         ->get()->toArray();
-    } catch (PDOException $pdoe) {
+    } catch (\Illuminate\Database\QueryException $pdoe) {
         throw new ShowableException(427, "Error al consultar");
     }
     if (count($ref) > 0) {
