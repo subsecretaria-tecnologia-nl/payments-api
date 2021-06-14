@@ -89,8 +89,7 @@
                 "type": "string"
               },
               "apellido_materno": {
-                "type": ["string","null"],
-                "maxLength": 100
+                
               },
               "razon_social": {
                 "type": ["string","null"],
@@ -147,8 +146,7 @@
                 "maxLength": 100
               },
               "apellido_materno": {
-                "type": "string",
-                "maxLength": 100
+                
               },
               "razon_social": {
                 "type": ["string","null"],

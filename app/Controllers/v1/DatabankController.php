@@ -64,10 +64,12 @@ class DatabankController {
 
                 default:
                     $datos ['error'] = 3;
+                    $datos ['mensaje'] = "Metodo de pago no definido";
                     break;
             }
         } else {
             $datos ['error'] = 2;
+            $datos ['mensaje'] = "Cuenta no permitida para la transaccion";
         }
         return $datos;
     }
@@ -375,7 +377,7 @@ function tipoServicioDesc($idTipoServicio) {
 
 function datosEnvioReferencia($datosTransaccion, $metodoPago) {
     $variablesEnt = explode("|", getenv("FORMATO_RECIBO"));
-    $urlFormatoPago = $variablesEnt[0] ;
+    $urlFormatoPago = $variablesEnt[0];
     $arrTramites = array();
     $idTransaccion = $idTransaccionEntidad = -1;
     $urlRetorno = $urlConfirmaPago = "";
