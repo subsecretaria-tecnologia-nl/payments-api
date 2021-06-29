@@ -10,7 +10,7 @@ class PayTest extends TestCase {
      *
      * @return void
      */
-    public function testPay() {
+    public function testPaySuccess() {
 
         $response = $this->json("post", '/v1/pay', array(''));
         var_dump($response->response->getStatusCode());

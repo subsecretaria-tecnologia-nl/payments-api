@@ -369,9 +369,8 @@ function actualizaPagoCero($parametros) {
     $anio = date("Y");
     $fechaEjecucion = $anio . '-' . $mes . '-' . $dia;
 
-    DB::table('oper_transacciones')
-            ->where('id_transaccion_motor', $parametros['id_transaccion'])
-            ->update(['estatus' => 0, 'metodo_pago_id' => 3, 'fecha_pago' => $fechaEjecucion, 'banco' => 'Banco Ceros']);
+    DB::statement("UPDATE operacion.oper_transacciones SET estatus = 0, metodo_pago_id=3, fecha_pago = fecha_transaccion, banco='Banco Ceros'  WHERE id_transaccion_motor = '" . $parametros['id_transaccion'] . "'");
+
     //buscamos si existe un registro con fecha de hoy y diferente al banco 18
     $existeRegistro = DB::table('oper_processedregisters as A')
                     ->where('A.fecha_ejecucion', $fechaEjecucion)
@@ -380,7 +379,7 @@ function actualizaPagoCero($parametros) {
     if ($existeRegistro) {
         $fechaEjecucion = date('Y', time() + 84600) . '-' . date('m', time() + 84600) . '-' . date('d', time() + 84600);
     }
-    $origen=substr($parametros['referencia'], 0, 2);
+    $origen = substr($parametros['referencia'], 0, 2);
     $datosRegistro = [
         [
             'origen' => $origen,
