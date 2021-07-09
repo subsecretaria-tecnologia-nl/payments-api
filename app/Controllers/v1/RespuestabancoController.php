@@ -64,8 +64,8 @@ class RespuestabancoController {
             $referencia = (isset($datosRespuesta['datos']['referencia'])) ? $datosRespuesta['datos']['referencia'] : "";
             $Autorizacion = (isset($request->n_autoriz)) ? $request->n_autoriz : "";
             $ttlTr = number_format($impbco, 2, ".", "");
+            
             $regHash = hash_hmac("sha256", $idTransaccion . $referencia . $ttlTr . $Autorizacion, $KeyHash);
-
             if ($mp_response == "00" && (md5($hash) === md5($regHash))
             ) {//pagado
                 $masterLog = array(
@@ -128,13 +128,14 @@ class RespuestabancoController {
 
             $trtkn = $request->transactionToken;
             $ch = curl_init();
-            $request = $url . $trtkn;
-            curl_setopt($ch, CURLOPT_URL, $request);
+            $requestUrl = $url . $trtkn;
+            curl_setopt($ch, CURLOPT_URL, $requestUrl);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', $authorization));
 
             $response = curl_exec($ch);
-            $decode = json_decode($response);
+            $request = $decode = json_decode($response);
+            $request->urlEnvio = $requestUrl;
             $error = curl_errno($ch);
             $info = curl_getinfo($ch);
             curl_close($ch);
@@ -145,7 +146,6 @@ class RespuestabancoController {
             $impbco = (isset($decode->transaction->totalAmount)) ? $decode->transaction->totalAmount : "";
             $response = (isset($decode->response->responseCode)) ? $decode->response->responseCode : "";
             $mensaje = (isset($decode->response->responseMsg)) ? $decode->response->responseMsg : "No recibido";
-
 
             if ($response == "00") {
                 $masterLog = array(
@@ -180,8 +180,9 @@ class RespuestabancoController {
         $datosRespuesta['datos']['mensaje'] = $mensaje;
         $datosRespuesta['datos']['estatus'] = $estatus;
         $datosRespuesta['datos']['url_recibo'] = $url_recibo;
-        $datosRespuesta['datos']['pHash'] = $idTransaccion . "_" . $referencia . "_" . $ttlTr . "_" . $Autorizacion;
-        $datosRespuesta['datos']['hash'] = $regHash;
+//        $datosRespuesta['datos']['pHash'] = $idTransaccion . "_" . $referencia . "_" . $ttlTr . "_" . $Autorizacion;
+//        $datosRespuesta['datos']['hash'] = $regHash;
+//        $datosRespuesta['datos']['hash2'] = $hash;
 
         return $datosRespuesta;
     }

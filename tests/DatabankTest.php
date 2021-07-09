@@ -29,21 +29,38 @@ class DatabankTest extends TestCase {
         $this->cuentaId = $datos[0]->cuentasbanco_id;
     }
 
-//    public function testDatabankNetPay() {
-//        $this->getTransaccion(17); //17 banco netpay
-//        $parametros = array(
-//            "folio" => $this->idTransaccion,
-//            "cuenta_id" => $this->cuentaId
-//        );
-//        $response = $this->json('POST', '/v1/databank', $parametros, ['Authorization' => 'Bearer ' . getenv("APP_KEY")]);
-//        $VAR = $response->response->getOriginalContent();
-//        $this->assertObjectHasAttribute('response', $VAR);
-//        $this->assertArrayHasKey('error', $VAR->response);
-//        $this->assertEquals(0, $VAR->response['error']);
-//        $this->assertArrayHasKey('datos', $VAR->response);
-//        $this->assertObjectHasAttribute('jwt', $VAR->response['datos']);
-//        $this->assertEquals(200, $response->response->getStatusCode());
-//    }
+    public function testDatabankCuentaNoPermitida() {
+        $this->getTransaccion(17); //17 banco netpay
+        $parametros = array(
+            "folio" => $this->idTransaccion,
+            "cuenta_id" => 999
+        );
+        $response = $this->json('POST', '/v1/databank', $parametros, ['Authorization' => 'Bearer ' . getenv("APP_KEY")]);
+        $VAR = $response->response->getOriginalContent();
+        $this->assertObjectHasAttribute('response', $VAR);
+        $this->assertArrayHasKey('error', $VAR->response);
+        $this->assertEquals(2, $VAR->response['error']);
+        $this->assertArrayHasKey('mensaje', $VAR->response);
+        $this->assertEquals('Cuenta no permitida para la transaccion', $VAR->response['mensaje']);
+        $this->assertArrayHasKey('datos', $VAR->response);
+        $this->assertEquals(200, $response->response->getStatusCode());
+    }
+
+    public function testDatabankNetPay() {
+        $this->getTransaccion(17); //17 banco netpay
+        $parametros = array(
+            "folio" => $this->idTransaccion,
+            "cuenta_id" => $this->cuentaId
+        );
+        $response = $this->json('POST', '/v1/databank', $parametros, ['Authorization' => 'Bearer ' . getenv("APP_KEY")]);
+        $VAR = $response->response->getOriginalContent();
+        $this->assertObjectHasAttribute('response', $VAR);
+        $this->assertArrayHasKey('error', $VAR->response);
+        $this->assertEquals(0, $VAR->response['error']);
+        $this->assertArrayHasKey('datos', $VAR->response);
+        $this->assertObjectHasAttribute('jwt', $VAR->response['datos']);
+        $this->assertEquals(200, $response->response->getStatusCode());
+    }
 
     public function testDatabankReferencia() {
         $variablesEnt = explode("|", getenv("FORMATO_RECIBO"));
